@@ -1,0 +1,128 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Project-Id-Version: luci-app-iptv-scan\n"
+
+msgid "IPTV Multicast Scanner"
+msgstr ""
+
+msgid "Detect IPTV multicast streams available on a selected network interface and create player playlists."
+msgstr ""
+
+msgid "Basic Settings"
+msgstr ""
+
+msgid "Scan interface"
+msgstr ""
+
+msgid "Select the logical interface that receives the IPTV network, such as wan or iptv."
+msgstr ""
+
+msgid "current value"
+msgstr ""
+
+msgid "Receive timeout"
+msgstr ""
+
+msgid "Seconds to wait for each multicast stream. A larger value improves detection reliability but makes scanning slower."
+msgstr ""
+
+msgid "Playlist protocol"
+msgstr ""
+
+msgid "Protocol prefix written to generated playlist addresses."
+msgstr ""
+
+msgid "Scan Ranges"
+msgstr ""
+
+msgid "Multicast ranges"
+msgstr ""
+
+msgid "One range per line. Use a three-octet multicast prefix followed by a port, for example 239.81.0.:4056. Each range scans addresses 1 through 255."
+msgstr ""
+
+msgid "Files and Metadata"
+msgstr ""
+
+msgid "Channel mapping file"
+msgstr ""
+
+msgid "Optional name mapping file. Each non-comment line uses the format: Channel name,239.1.2.3:1234."
+msgstr ""
+
+msgid "M3U output file"
+msgstr ""
+
+msgid "Generated M3U playlist path. The default location is available through the router web server."
+msgstr ""
+
+msgid "TXT output file"
+msgstr ""
+
+msgid "Generated TXT playlist path."
+msgstr ""
+
+msgid "EPG URL"
+msgstr ""
+
+msgid "Optional XMLTV EPG URL written into the M3U header."
+msgstr ""
+
+msgid "Channel logo base URL"
+msgstr ""
+
+msgid "Optional base URL for channel logos. The scanner appends the channel name and .png suffix."
+msgstr ""
+
+msgid "IPTV Multicast Scan Task"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Idle"
+msgstr ""
+
+msgid "Start scan"
+msgstr ""
+
+msgid "The IPTV multicast scan has started."
+msgstr ""
+
+msgid "Unable to start scan: "
+msgstr ""
+
+msgid "Scan settings"
+msgstr ""
+
+msgid "Scan log"
+msgstr ""
+
+msgid "No scan log is available yet."
+msgstr ""
+
+msgid "Generated playlist:"
+msgstr ""
+
+msgid "Open M3U playlist"
+msgstr ""
+
+msgid "Open TXT playlist"
+msgstr ""
+
+msgid "No playlist has been generated yet."
+msgstr ""
+
+msgid "IPTV Multicast Scan"
+msgstr ""
+
+msgid "Scan Task"
+msgstr ""
+
+msgid "Grant access to IPTV multicast scanner"
+msgstr ""

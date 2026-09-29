@@ -1,0 +1,130 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-iptv-scan\n"
+"Language: zh_Hans\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "IPTV Multicast Scanner"
+msgstr "IPTV 组播扫描"
+
+msgid "Detect IPTV multicast streams available on a selected network interface and create player playlists."
+msgstr "检测所选网络接口可接收的 IPTV 组播流，并生成播放器可用的播放列表。"
+
+msgid "Basic Settings"
+msgstr "基本设置"
+
+msgid "Scan interface"
+msgstr "扫描接口"
+
+msgid "Select the logical interface that receives the IPTV network, such as wan or iptv."
+msgstr "选择接收 IPTV 网络的逻辑接口，例如 wan 或 iptv。"
+
+msgid "current value"
+msgstr "当前值"
+
+msgid "Receive timeout"
+msgstr "接收超时"
+
+msgid "Seconds to wait for each multicast stream. A larger value improves detection reliability but makes scanning slower."
+msgstr "等待每个组播流数据的秒数。数值越大，检测越可靠，但扫描耗时越长。"
+
+msgid "Playlist protocol"
+msgstr "播放列表协议"
+
+msgid "Protocol prefix written to generated playlist addresses."
+msgstr "写入生成播放列表地址中的协议前缀。"
+
+msgid "Scan Ranges"
+msgstr "扫描网段"
+
+msgid "Multicast ranges"
+msgstr "组播网段"
+
+msgid "One range per line. Use a three-octet multicast prefix followed by a port, for example 239.81.0.:4056. Each range scans addresses 1 through 255."
+msgstr "每行一个网段，使用三段组播地址前缀加端口，例如 239.81.0.:4056。每个网段会扫描 1 到 255 的地址。"
+
+msgid "Files and Metadata"
+msgstr "文件与元数据"
+
+msgid "Channel mapping file"
+msgstr "频道映射文件"
+
+msgid "Optional name mapping file. Each non-comment line uses the format: Channel name,239.1.2.3:1234."
+msgstr "可选的频道名称映射文件。每行非注释记录格式为：频道名称,239.1.2.3:1234。"
+
+msgid "M3U output file"
+msgstr "M3U 输出文件"
+
+msgid "Generated M3U playlist path. The default location is available through the router web server."
+msgstr "生成的 M3U 播放列表路径。默认路径可通过路由器 Web 服务访问。"
+
+msgid "TXT output file"
+msgstr "TXT 输出文件"
+
+msgid "Generated TXT playlist path."
+msgstr "生成的 TXT 播放列表路径。"
+
+msgid "EPG URL"
+msgstr "EPG 地址"
+
+msgid "Optional XMLTV EPG URL written into the M3U header."
+msgstr "可选的 XMLTV EPG 地址，将写入 M3U 文件头。"
+
+msgid "Channel logo base URL"
+msgstr "频道台标基础地址"
+
+msgid "Optional base URL for channel logos. The scanner appends the channel name and .png suffix."
+msgstr "可选的频道台标基础地址。扫描器会自动附加频道名称及 .png 后缀。"
+
+msgid "IPTV Multicast Scan Task"
+msgstr "IPTV 组播扫描任务"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Idle"
+msgstr "空闲"
+
+msgid "Start scan"
+msgstr "开始扫描"
+
+msgid "The IPTV multicast scan has started."
+msgstr "IPTV 组播扫描任务已启动。"
+
+msgid "Unable to start scan: "
+msgstr "无法启动扫描："
+
+msgid "Scan settings"
+msgstr "扫描设置"
+
+msgid "Scan log"
+msgstr "扫描日志"
+
+msgid "No scan log is available yet."
+msgstr "暂时没有扫描日志。"
+
+msgid "Generated playlist:"
+msgstr "已生成的播放列表："
+
+msgid "Open M3U playlist"
+msgstr "打开 M3U 播放列表"
+
+msgid "Open TXT playlist"
+msgstr "打开 TXT 播放列表"
+
+msgid "No playlist has been generated yet."
+msgstr "暂未生成播放列表。"
+
+msgid "IPTV Multicast Scan"
+msgstr "IPTV 组播扫描"
+
+msgid "Scan Task"
+msgstr "扫描任务"
+
+msgid "Grant access to IPTV multicast scanner"
+msgstr "授予 IPTV 组播扫描器访问权限"

@@ -1,0 +1,70 @@
+#!/usr/bin/ucode
+
+'use strict';
+
+import { access, open, popen, readfile, writefile } from 'fs';
+
+const LOCK_FILE = '/tmp/iptv-scan.lock';
+const LOG_FILE = '/tmp/iptv-scan.log';
+const SCANNER = '/usr/bin/iptv-scan.lua';
+const LUA = '/usr/bin/lua';
+
+function is_running() {
+	let pid = trim(readfile(LOCK_FILE) || '');
+	return !!match(pid, /^[0-9]+$/) && !!access('/proc/' + pid + '/stat', 'r');
+}
+
+function log_tail(max_bytes) {
+	let content = readfile(LOG_FILE) || '';
+	if (length(content) > max_bytes)
+		content = substr(content, length(content) - max_bytes);
+	return content;
+}
+
+function list_interfaces() {
+	let interfaces = [];
+	let process = popen('ubus list "network.interface.*" 2>/dev/null', 'r');
+	if (!process)
+		return interfaces;
+
+	let line;
+	while ((line = process.read('line')) !== null) {
+		let found = match(line, /^network\.interface\.([A-Za-z0-9_.-]+)$/);
+		if (found)
+			push(interfaces, found[1]);
+	}
+	process.close();
+	return interfaces;
+}
+
+const methods = {
+	status: {
+		call: function() {
+			return {
+				running: is_running(),
+				log: log_tail(65536),
+				m3u_available: !!access('/www/iptv.m3u', 'r'),
+				txt_available: !!access('/www/iptv.txt', 'r'),
+			};
+		}
+	},
+	interfaces: {
+		call: function() {
+			return { interfaces: list_interfaces() };
+		}
+	},
+	start: {
+		call: function() {
+			if (is_running())
+				return { error: '扫描任务正在运行。' };
+			if (!access(LUA, 'x') || !access(SCANNER, 'x'))
+				return { error: '扫描程序不可用。' };
+
+			writefile(LOG_FILE, '正在启动 IPTV 组播扫描任务…\n');
+			system(LUA + ' ' + SCANNER + ' > ' + LOG_FILE + ' 2>&1 < /dev/null &');
+			return { started: true };
+		}
+	}
+};
+
+return { 'luci.iptv-scan': methods };
