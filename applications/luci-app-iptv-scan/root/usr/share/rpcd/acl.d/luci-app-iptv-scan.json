@@ -1,0 +1,17 @@
+{
+	"luci-app-iptv-scan": {
+		"description": "Grant access to IPTV multicast scanner",
+		"read": {
+			"uci": [ "iptv-scan", "network" ],
+			"ubus": {
+				"luci.iptv-scan": [ "status", "interfaces" ]
+			}
+		},
+		"write": {
+			"uci": [ "iptv-scan" ],
+			"ubus": {
+				"luci.iptv-scan": [ "start" ]
+			}
+		}
+	}
+}
