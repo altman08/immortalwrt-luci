@@ -1,0 +1,102 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Language: zh_Hans\\n"
+"MIME-Version: 1.0\\n"
+"Content-Transfer-Encoding: 8bit\\n"
+
+msgid "QuarkDrive WebDAV"
+msgstr "夸克网盘 WebDAV"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "QuarkDrive Cookie"
+msgstr "夸克网盘 Cookie"
+
+msgid "WebDAV username"
+msgstr "WebDAV 用户名"
+
+msgid "WebDAV password"
+msgstr "WebDAV 密码"
+
+msgid "WebDAV username and password must be specified together."
+msgstr "必须同时设置 WebDAV 用户名和密码。"
+
+msgid "TLS certificate and private key must be specified together."
+msgstr "必须同时设置 TLS 证书和私钥。"
+
+msgid "Listen address"
+msgstr "监听地址"
+
+msgid "Listen port"
+msgstr "监听端口"
+
+msgid "Root directory"
+msgstr "根目录"
+
+msgid "Read-only mode"
+msgstr "只读模式"
+
+msgid "Generate directory index"
+msgstr "生成目录索引"
+
+msgid "Delete permanently"
+msgstr "永久删除"
+
+msgid "Download buffer size"
+msgstr "下载缓冲区大小"
+
+msgid "Upload buffer size"
+msgstr "上传缓冲区大小"
+
+msgid "Directory cache size"
+msgstr "目录缓存大小"
+
+msgid "Directory cache TTL"
+msgstr "目录缓存有效期"
+
+msgid "Cache refresh interval"
+msgstr "缓存刷新间隔"
+
+msgid "Upload completion timeout"
+msgstr "上传完成超时"
+
+msgid "URL prefix to strip"
+msgstr "移除的 URL 前缀"
+
+msgid "TLS certificate file"
+msgstr "TLS 证书文件"
+
+msgid "TLS private key file"
+msgstr "TLS 私钥文件"
+
+msgid "Skip same-size uploads"
+msgstr "跳过相同大小的上传文件"
+
+msgid "Prefer HTTP downloads"
+msgstr "优先使用 HTTP 下载"
+
+msgid "Enable redirects when possible"
+msgstr "尽可能启用重定向"
+
+msgid "Enable debug logging"
+msgstr "启用调试日志"
+
+msgid "Disable self upgrade"
+msgstr "禁用自更新"
+
+msgid "Prevent the service from attempting to update itself."
+msgstr "阻止服务尝试自行更新。"
+
+msgid "RUNNING"
+msgstr "运行中"
+
+msgid "NOT RUNNING"
+msgstr "未运行"
+
+msgid "Open WebDAV Server"
+msgstr "打开 WebDAV 服务"
+
+msgid "Collecting data…"
+msgstr "正在收集数据…"
