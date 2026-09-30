@@ -11,7 +11,7 @@ PKG_MAINTAINER:=PonWrt
 
 LUCI_TITLE:=IPTV Multicast Scanner
 LUCI_DESCRIPTION:=Scan IPTV multicast streams and generate Chinese M3U playlists.
-LUCI_DEPENDS:=+luci-base +lua +luasocket +libuci-lua +rpcd-mod-ucode
+LUCI_DEPENDS:=+luci-lua-runtime +libuci-lua +rpcd-mod-ucode
 LUCI_PKGARCH:=all
 
 include ../../luci.mk

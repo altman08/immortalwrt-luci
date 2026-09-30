@@ -1,6 +1,6 @@
 #!/usr/bin/lua
 
-local socket = require('socket')
+local nixio = require('nixio')
 local uci = require('uci').cursor()
 
 local CONFIG = 'iptv-scan'
@@ -148,29 +148,38 @@ local function quality(name)
 end
 
 local function scan_address(address, port, source_ip, timeout)
-	local udp, error_message = socket.udp()
+	local udp, error_message = nixio.socket('inet', 'dgram')
 	if not udp then
 		return false, error_message
 	end
-	udp:settimeout(timeout)
-	udp:setoption('reuseaddr', true)
 
-	local bound, bind_error = udp:setsockname('0.0.0.0', port)
+	local function close_with_error(error)
+		udp:close()
+		return false, error
+	end
+
+	local seconds = math.floor(timeout)
+	local microseconds = math.floor((timeout - seconds) * 1000000)
+	local ok, option_error = udp:setopt('socket', 'reuseaddr', 1)
+	if not ok then
+		return close_with_error(option_error)
+	end
+	ok, option_error = udp:setopt('socket', 'rcvtimeo', seconds, microseconds)
+	if not ok then
+		return close_with_error(option_error)
+	end
+
+	local bound, bind_error = udp:bind('0.0.0.0', port)
 	if not bound then
-		udp:close()
-		return false, bind_error
+		return close_with_error(bind_error)
 	end
 
-	local joined, join_error = udp:setoption('ip-add-membership', {
-		multiaddr = address,
-		interface = source_ip
-	})
+	local joined, join_error = udp:setopt('ip', 'add_membership', address, source_ip)
 	if not joined then
-		udp:close()
-		return false, join_error
+		return close_with_error(join_error)
 	end
 
-	local data = udp:receive()
+	local data = udp:recv(8192)
 	udp:close()
 	if not data or #data == 0 then
 		return false
