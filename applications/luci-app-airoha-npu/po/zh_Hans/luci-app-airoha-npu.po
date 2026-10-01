@@ -1,0 +1,250 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-airoha-npu\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "%d MHz is above %d MHz, which is as far as this has been tested. The board may run unstable or stop responding until it is power cycled."
+msgstr "%d MHz 超过了已测试的最高频率 %d MHz。设备可能运行不稳定，或在断电重启前无法响应。"
+
+msgid "%d sta"
+msgstr "%d 台终端"
+
+msgid "%d used / %d free (%s%%)"
+msgstr "已用 %d / 空闲 %d（%s%%）"
+
+msgid "%s (%d regions)"
+msgstr "%s（%d 个区域）"
+
+msgid "%s (PLL estimate)"
+msgstr "%s（PLL 估算值）"
+
+msgid "%s | %s | %d cores"
+msgstr "%s | %s | %d 个核心"
+
+msgid "8x RISC-V via PCIe RAM"
+msgstr "8 个 RISC-V 核心，通过 PCIe RAM 通信"
+
+msgid "Active"
+msgstr "已启用"
+
+msgid "Active (%s)"
+msgstr "已启用（%s）"
+
+msgid "Airoha SoC Status"
+msgstr "Airoha SoC 状态"
+
+msgid "Apply"
+msgstr "应用"
+
+msgid "Applying..."
+msgstr "正在应用..."
+
+msgid "Band %d"
+msgstr "频段 %d"
+
+msgid "Bound"
+msgstr "已绑定"
+
+msgid "Bytes"
+msgstr "字节数"
+
+msgid "CPU Temperature"
+msgstr "CPU 温度"
+
+msgid "CPU Cores"
+msgstr "CPU 核心数"
+
+msgid "CPU DMA 1"
+msgstr "CPU DMA 1"
+
+msgid "CPU DMA 2"
+msgstr "CPU DMA 2"
+
+msgid "CPU Frequency"
+msgstr "CPU 频率"
+
+msgid "CPU set to %d MHz"
+msgstr "CPU 已设置为 %d MHz"
+
+msgid "CPU: %s"
+msgstr "CPU：%s"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Confirm overclock"
+msgstr "确认超频"
+
+msgid "Continue"
+msgstr "继续"
+
+msgid "Could not set the governor: %s"
+msgstr "无法设置 CPU 调速策略：%s"
+
+msgid "Could not set the maximum frequency: %s"
+msgstr "无法设置最高频率：%s"
+
+msgid "Current Frequency"
+msgstr "当前频率"
+
+msgid "Direct PLL write, %d-%d MHz. Tested up to %d MHz."
+msgstr "直接写入 PLL，范围 %d–%d MHz。已测试至 %d MHz。"
+
+msgid "Drop %s"
+msgstr "丢包 %s"
+
+msgid "Error: %s"
+msgstr "错误：%s"
+
+msgid "Ethernet"
+msgstr "以太网"
+
+msgid "External Ethernet / SerDes"
+msgstr "外部以太网 / SerDes"
+
+msgid "Failed: %s"
+msgstr "操作失败：%s"
+
+msgid "Fair"
+msgstr "一般"
+
+msgid "Firmware / Clock / Cores"
+msgstr "固件 / 时钟 / 核心数"
+
+msgid "Frame Engine"
+msgstr "帧处理引擎"
+
+msgid "Good"
+msgstr "良好"
+
+msgid "Governor"
+msgstr "CPU 调速策略"
+
+msgid "Grant access to Airoha SoC status (NPU + CPU + Overclock)"
+msgstr "允许访问 Airoha SoC 状态（NPU、CPU 和超频）"
+
+msgid "HW Offload: %s%%"
+msgstr "硬件卸载：%s%%"
+
+msgid "HWF: %s"
+msgstr "硬件转发：%s"
+
+msgid "Idle"
+msgstr "空闲"
+
+msgid "Index"
+msgstr "索引"
+
+msgid "Internal Switch CPU Port"
+msgstr "内部交换机 CPU 端口"
+
+msgid "Manages:"
+msgstr "负责："
+
+msgid "Max Frequency"
+msgstr "最高频率"
+
+msgid "N/A"
+msgstr "不可用"
+
+msgid "NPU & Offload Engine"
+msgstr "NPU 与硬件卸载引擎"
+
+msgid "NPU Status"
+msgstr "NPU 状态"
+
+msgid "New Flow"
+msgstr "转换后数据流"
+
+msgid "No clients"
+msgstr "无客户端"
+
+msgid "Not Active"
+msgstr "未启用"
+
+msgid "Not available: unrecognised SoC"
+msgstr "不可用：无法识别 SoC"
+
+msgid "Off"
+msgstr "关闭"
+
+msgid "Original Flow"
+msgstr "原始数据流"
+
+msgid "Overclock"
+msgstr "超频"
+
+msgid "Overclock request failed: %s"
+msgstr "超频请求失败：%s"
+
+msgid "P7 WiFi DMA"
+msgstr "P7 WiFi DMA"
+
+msgid "PON / WAN Data Path"
+msgstr "PON / WAN 数据通道"
+
+msgid "PPE Engines"
+msgstr "PPE 引擎"
+
+msgid "PPE Flow Offload Entries"
+msgstr "PPE 流卸载表项"
+
+msgid "PPE init, WDMA rings, flow stats"
+msgstr "PPE 初始化、WDMA 环形队列、流量统计"
+
+msgid "PSE Port Queue Status"
+msgstr "PSE 端口队列状态"
+
+msgid "PSE Shared Buffer"
+msgstr "PSE 共享缓冲区"
+
+msgid "Packets"
+msgstr "数据包数"
+
+msgid "Poor"
+msgstr "较差"
+
+msgid "RX"
+msgstr "接收"
+
+msgid "RX Drop"
+msgstr "接收丢包"
+
+msgid "Reserved Memory"
+msgstr "预留内存"
+
+msgid "SoC"
+msgstr "SoC"
+
+msgid "SoC Status"
+msgstr "SoC 状态"
+
+msgid "State"
+msgstr "状态"
+
+msgid "TX"
+msgstr "发送"
+
+msgid "TX Drop"
+msgstr "发送丢包"
+
+msgid "TX: %s"
+msgstr "发送：%s"
+
+msgid "The frequency must be between %d and %d MHz"
+msgstr "频率必须在 %d 到 %d MHz 之间"
+
+msgid "Total"
+msgstr "总计"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "Unknown"
+msgstr "未知"
+
+msgid "devmem is not available on this build"
+msgstr "此固件未提供 devmem"

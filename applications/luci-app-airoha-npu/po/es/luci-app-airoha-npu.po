@@ -178,12 +178,12 @@ msgstr ""
 msgid "Index"
 msgstr "Índice"
 
-#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:269
-msgid "Internal Switch (1G LAN3/4)"
+#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:271
+msgid "External Ethernet / SerDes"
 msgstr ""
 
-#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:271
-msgid "LAN2 (USXGMII 10G)"
+#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:269
+msgid "Internal Switch CPU Port"
 msgstr ""
 
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:215
@@ -324,7 +324,7 @@ msgid "Unknown"
 msgstr ""
 
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:270
-msgid "WAN (USXGMII 10G)"
+msgid "PON / WAN Data Path"
 msgstr ""
 
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:136

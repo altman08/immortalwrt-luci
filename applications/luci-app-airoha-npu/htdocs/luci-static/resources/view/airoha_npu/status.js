@@ -55,6 +55,9 @@ var viewCSS = '\
 .airoha-npu-pse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}\
 .airoha-npu-pse-cell{background:var(--background-color-high,#fff);border:1px solid var(--border-color-medium,#d0d0d0);border-radius:5px;padding:6px 8px;font-size:12px}\
 .airoha-npu-pse-cell-drop{border-color:var(--error-color-medium,#f44336)}\
+.airoha-npu-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}\
+.airoha-npu-table-scroll .table{min-width:820px}\
+@media(max-width:600px){.airoha-npu-grid{grid-template-columns:1fr}.airoha-npu-band-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.airoha-npu-pse-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}.airoha-npu-freq-row{gap:5px}.airoha-npu-freq-track{min-width:0}}\
 ';
 
 /* ── Helpers ── */
@@ -214,7 +217,7 @@ function renderFeDiagram(fe, ti, st) {
 		]),
 		E('div', { 'class': 'airoha-npu-label', 'style': 'margin-bottom:4px' }, _('8x RISC-V via PCIe RAM')),
 		E('div', { 'style': 'font-size:11px' }, [
-			E('span', { 'class': 'airoha-npu-muted' }, _('Manages: ')),
+			E('span', { 'class': 'airoha-npu-muted' }, _('Manages:') + ' '),
 			E('span', { 'class': 'airoha-npu-text' }, _('PPE init, WDMA rings, flow stats'))
 		])
 	]);
@@ -227,11 +230,11 @@ function renderFeDiagram(fe, ti, st) {
 		]),
 		E('div', { 'style': 'display:flex;gap:16px;font-size:12px' }, [
 			E('span', {}, [
-				E('span', { 'class': 'airoha-npu-muted' }, _('Bound ')),
+				E('span', { 'class': 'airoha-npu-muted' }, _('Bound') + ' '),
 				E('span', { 'class': 'airoha-npu-text', 'style': 'font-weight:bold' }, (st.offload_bound||0).toString())
 			]),
 			E('span', {}, [
-				E('span', { 'class': 'airoha-npu-muted' }, _('Total ')),
+				E('span', { 'class': 'airoha-npu-muted' }, _('Total') + ' '),
 				E('span', { 'class': 'airoha-npu-text' }, (st.offload_total||0).toString())
 			])
 		])
@@ -268,9 +271,9 @@ function renderFeDiagram(fe, ti, st) {
 		]),
 		// Row 1: GDM ports
 		E('div', { 'class': 'airoha-npu-grid' }, [
-			gdmCard('gdm1', 'GDM1', _('Internal Switch (1G LAN3/4)'), 'P1'),
-			gdmCard('gdm2', 'GDM2', _('WAN (USXGMII 10G)'), 'P2'),
-			gdmCard('gdm4', 'GDM4', _('LAN2 (USXGMII 10G)'), 'P9')
+			gdmCard('gdm1', 'GDM1', _('Internal Switch CPU Port'), 'P1'),
+			gdmCard('gdm2', 'GDM2', _('PON / WAN Data Path'), 'P2'),
+			gdmCard('gdm4', 'GDM4', _('External Ethernet / SerDes'), 'P9')
 		]),
 		// Row 2: CDM1/CDM2 (CPU) + CDM4/WiFi
 		E('div', { 'class': 'airoha-npu-grid' }, [
@@ -294,8 +297,9 @@ function renderFeDiagram(fe, ti, st) {
 // whichever governor is running: the direct write goes behind cpufreq's back,
 // so the governor says nothing about whether it happened.
 function freqBarState(hw, min, max, pll) {
-	var oc = pll>0 && (pll*1000)>max;
-	return { freq: oc ? pll*1000 : Math.min(hw,max), max: oc ? pll*1000 : max, oc: oc };
+	var estimate = !(max > 0) && pll > 0;
+	var oc = max > 0 && pll > 0 && (pll * 1000) > max;
+	return { freq: estimate ? pll*1000 : oc ? pll*1000 : Math.min(hw,max), max: estimate ? 0 : oc ? pll*1000 : max, oc: oc, estimate: estimate };
 }
 
 function freqBarPct(s, min) {
@@ -304,11 +308,10 @@ function freqBarPct(s, min) {
 }
 
 function freqBarLabel(s, pll) {
-	return s.oc ? (pll+' MHz (OC)') : fmtFreq(s.freq);
+	return s.estimate ? _('%s (PLL estimate)').format(fmtFreq(pll * 1000)) : s.oc ? (pll+' MHz (OC)') : fmtFreq(s.freq);
 }
 
 function renderFreqBar(hw, min, max, pll) {
-	if (!max) return E('span',{},_('N/A'));
 	var s = freqBarState(hw,min,max,pll);
 
 	// The reading sits above the bar rather than on top of it: a label
@@ -316,7 +319,7 @@ function renderFreqBar(hw, min, max, pll) {
 	// single ink colour is guaranteed to be readable on both.
 	return E('div', {}, [
 		E('div', { 'id':'airoha-npu-freq-value', 'class':'airoha-npu-freq-value' }, freqBarLabel(s, pll)),
-		E('div', { 'class':'airoha-npu-freq-row' }, [
+		E('div', { 'class':'airoha-npu-freq-row', 'style':s.max>0?'':'display:none' }, [
 			E('span', { 'class':'airoha-npu-muted', 'style':'font-size:90%' }, fmtFreq(min)),
 			E('div', { 'class':'airoha-npu-bar-track airoha-npu-freq-track' }, [
 				E('div', { 'id':'airoha-npu-freq-fill', 'class':'airoha-npu-bar-fill airoha-npu-bar-'+(s.oc?'warn':'ok'), 'style':'width:'+freqBarPct(s,min)+'%' })
@@ -331,7 +334,9 @@ function updateFreqBar(hw, min, max, pll) {
 	var el = document.getElementById('airoha-npu-freq-value');
 	var fl = document.getElementById('airoha-npu-freq-fill');
 	var ml = document.getElementById('airoha-npu-freq-max');
+	var row = el && el.nextElementSibling;
 	if (el) el.textContent = freqBarLabel(s, pll);
+	if (row) row.style.display = s.max>0 ? '' : 'none';
 	if (fl && s.max>0) {
 		fl.style.width = freqBarPct(s,min)+'%';
 		fl.className = 'airoha-npu-bar-fill airoha-npu-bar-'+(s.oc?'warn':'ok');
@@ -443,12 +448,17 @@ function renderOcControls(soc, ocMin, ocMax) {
 }
 
 /* ── PPE Table ── */
+function formatPpeCount(count) {
+	return count == null ? '-' : String(count);
+}
+
 function renderPpeRows(entries) {
 	return entries.slice(0,100).map(function(e) {
 		var eth = e.eth||''; if(eth==='00:00:00:00:00:00->00:00:00:00:00:00') eth='-';
 		return E('tr',{'class':'tr'},[
 			E('td',{'class':'td'},e.index), E('td',{'class':'td'},E('span',{'class':e.state==='BND'?'label-success':''},e.state)),
-			E('td',{'class':'td'},e.type), E('td',{'class':'td'},e.orig||'-'), E('td',{'class':'td'},e.new_flow||'-'), E('td',{'class':'td'},eth)
+			E('td',{'class':'td'},e.type), E('td',{'class':'td'},e.orig||'-'), E('td',{'class':'td'},e.new_flow||'-'), E('td',{'class':'td'},eth),
+			E('td',{'class':'td'},formatPpeCount(e.packets)), E('td',{'class':'td'},formatPpeCount(e.bytes))
 		]);
 	});
 }
@@ -488,6 +498,7 @@ return view.extend({
 				E('h3',{},_('CPU Frequency')),
 				E('table',{'class':'table'},[
 					E('tr',{'class':'tr'},[ E('td',{'class':'td','width':'33%'},E('strong',{},_('Current Frequency'))), E('td',{'class':'td'}, renderFreqBar(st.cpu_hw_freq,st.cpu_min_freq,st.cpu_max_freq,st.pll_freq_mhz)) ]),
+					E('tr',{'class':'tr'},[ E('td',{'class':'td'},E('strong',{},_('CPU Temperature'))), E('td',{'class':'td','id':'airoha-npu-cpu-temp'}, st.cpu_temp >= 0 ? st.cpu_temp + ' °C' : _('N/A')) ]),
 					E('tr',{'class':'tr'},[ E('td',{'class':'td'},E('strong',{},_('Governor'))), E('td',{'class':'td'}, renderGovSelect(st.cpu_avail_governors,st.cpu_governor)) ]),
 					E('tr',{'class':'tr'},[ E('td',{'class':'td'},E('strong',{},_('Max Frequency'))), E('td',{'class':'td'}, renderMaxFreqSelect(st.cpu_avail_freqs,st.cpu_max_freq)) ]),
 					E('tr',{'class':'tr'},[ E('td',{'class':'td'},E('strong',{},_('Overclock'))), E('td',{'class':'td'}, renderOcControls(st.soc, st.oc_min_mhz, st.oc_max_mhz)) ]),
@@ -518,12 +529,13 @@ return view.extend({
 			// PPE Flow Table
 			E('div',{'class':'cbi-section'},[
 				E('h3',{},_('PPE Flow Offload Entries')),
-				E('table',{'class':'table','id':'airoha-npu-ppe-table'},[
+				E('div',{'class':'airoha-npu-table-scroll'}, E('table',{'class':'table','id':'airoha-npu-ppe-table'},[
 					E('tr',{'class':'tr cbi-section-table-titles'},[
 						E('th',{'class':'th'},_('Index')), E('th',{'class':'th'},_('State')), E('th',{'class':'th'},_('Type')),
-						E('th',{'class':'th'},_('Original Flow')), E('th',{'class':'th'},_('New Flow')), E('th',{'class':'th'},_('Ethernet'))
+						E('th',{'class':'th'},_('Original Flow')), E('th',{'class':'th'},_('New Flow')), E('th',{'class':'th'},_('Ethernet')),
+						E('th',{'class':'th'},_('Packets')), E('th',{'class':'th'},_('Bytes'))
 					])
-				].concat(renderPpeRows(entries)))
+				].concat(renderPpeRows(entries))))
 			])
 		]);
 
@@ -533,6 +545,7 @@ return view.extend({
 				var entries = Array.isArray(ppe.entries)?ppe.entries:[];
 
 				updateFreqBar(st.cpu_hw_freq,st.cpu_min_freq,st.cpu_max_freq,st.pll_freq_mhz);
+				var tempEl=document.getElementById('airoha-npu-cpu-temp'); if(tempEl) tempEl.textContent=st.cpu_temp >= 0 ? st.cpu_temp + ' °C' : _('N/A');
 				var gs=document.getElementById('airoha-npu-governor-select'); if(gs&&!gs.matches(':focus')) gs.value=st.cpu_governor||'';
 				var fs=document.getElementById('airoha-npu-maxfreq-select'); if(fs&&!fs.matches(':focus')) fs.value=(st.cpu_max_freq||0).toString();
 

@@ -19,6 +19,9 @@ msgstr ""
 msgid "%s (%d regions)"
 msgstr ""
 
+msgid "%s (PLL estimate)"
+msgstr ""
+
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:506
 msgid "%s | %s | %d cores"
 msgstr ""
@@ -59,7 +62,14 @@ msgstr ""
 msgid "Bound"
 msgstr ""
 
+#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:530
+msgid "Bytes"
+msgstr ""
+
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:492
+msgid "CPU Temperature"
+msgstr ""
+
 msgid "CPU Cores"
 msgstr ""
 
@@ -168,12 +178,12 @@ msgstr ""
 msgid "Index"
 msgstr ""
 
-#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:269
-msgid "Internal Switch (1G LAN3/4)"
+#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:271
+msgid "External Ethernet / SerDes"
 msgstr ""
 
-#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:271
-msgid "LAN2 (USXGMII 10G)"
+#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:269
+msgid "Internal Switch CPU Port"
 msgstr ""
 
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:215
@@ -257,6 +267,10 @@ msgstr ""
 msgid "PSE Shared Buffer"
 msgstr ""
 
+#: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:530
+msgid "Packets"
+msgstr ""
+
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:104
 msgid "Poor"
 msgstr ""
@@ -314,7 +328,7 @@ msgid "Unknown"
 msgstr ""
 
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:270
-msgid "WAN (USXGMII 10G)"
+msgid "PON / WAN Data Path"
 msgstr ""
 
 #: feeds/luci/applications/luci-app-airoha-npu/htdocs/luci-static/resources/view/airoha_npu/status.js:136
