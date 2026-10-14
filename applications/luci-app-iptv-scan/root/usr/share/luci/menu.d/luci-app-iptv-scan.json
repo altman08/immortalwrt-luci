@@ -1,6 +1,6 @@
 {
 	"admin/services/iptv-scan": {
-		"title": "IPTV 组播扫描",
+		"title": "IPTV Multicast Scan",
 		"action": {
 			"type": "firstchild"
 		},
@@ -9,7 +9,7 @@
 		}
 	},
 	"admin/services/iptv-scan/settings": {
-		"title": "扫描设置",
+		"title": "Scan settings",
 		"order": 10,
 		"action": {
 			"type": "view",
@@ -17,7 +17,7 @@
 		}
 	},
 	"admin/services/iptv-scan/status": {
-		"title": "扫描任务",
+		"title": "Scan Task",
 		"order": 20,
 		"action": {
 			"type": "view",

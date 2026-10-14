@@ -54,14 +54,19 @@ const methods = {
 		}
 	},
 	start: {
-		call: function() {
+		args: { language: 'String' },
+		call: function(req) {
 			if (is_running())
-				return { error: '扫描任务正在运行。' };
+				return { error: 'already_running' };
 			if (!access(LUA, 'x') || !access(SCANNER, 'x'))
-				return { error: '扫描程序不可用。' };
+				return { error: 'scanner_unavailable' };
 
-			writefile(LOG_FILE, '正在启动 IPTV 组播扫描任务…\n');
-			system(LUA + ' ' + SCANNER + ' > ' + LOG_FILE + ' 2>&1 < /dev/null &');
+			let language = req.args.language || 'en';
+			if (!match(language, /^[A-Za-z]{2}([_-][A-Za-z]{2})?$/))
+				language = 'en';
+
+			writefile(LOG_FILE, '');
+			system(LUA + ' ' + SCANNER + ' ' + language + ' > ' + LOG_FILE + ' 2>&1 < /dev/null &');
 			return { started: true };
 		}
 	}

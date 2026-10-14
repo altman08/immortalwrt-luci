@@ -128,3 +128,72 @@ msgstr "扫描任务"
 
 msgid "Grant access to IPTV multicast scanner"
 msgstr "授予 IPTV 组播扫描器访问权限"
+
+msgid "[Notice] Unable to read channel mapping file: %s"
+msgstr "[提示] 未读取到频道映射文件：%s"
+
+msgid "Invalid scan interface name."
+msgstr "扫描接口名称无效。"
+
+msgid "Unable to read interface status."
+msgstr "无法读取接口状态。"
+
+msgid "Interface %s has no IPv4 address. Check that the IPTV network is connected."
+msgstr "接口「%s」未取得 IPv4 地址。请确认 IPTV 网络已经连接。"
+
+msgid "[Skip] Invalid range: %s. Expected format: 239.1.2.:1234"
+msgstr "[跳过] 无效网段：「%s」。格式应为 239.1.2.:1234"
+
+msgid "Unable to write M3U file: %s"
+msgstr "无法写入 M3U 文件：%s"
+
+msgid "Unable to write TXT file: %s"
+msgstr "无法写入 TXT 文件：%s"
+
+msgid "Receive timeout must be greater than 0 and at most 10 seconds."
+msgstr "接收超时必须大于 0 且不超过 10 秒。"
+
+msgid "Playlist protocol must be rtp or udp."
+msgstr "播放协议必须为 rtp 或 udp。"
+
+msgid "Channel mapping and output files must use safe absolute paths."
+msgstr "频道映射及输出文件必须使用安全的绝对路径。"
+
+msgid "No valid multicast ranges are available."
+msgstr "没有可用的组播网段。"
+
+msgid "IPTV multicast scan started: %s"
+msgstr "IPTV 组播扫描开始：%s"
+
+msgid "Scan interface: %s (%s)"
+msgstr "扫描接口：%s（%s）"
+
+msgid "Scanning range: %s1-255:%d"
+msgstr "扫描网段：%s1-255:%d"
+
+msgid "Found: %s (%s)"
+msgstr "发现：%s（%s）"
+
+msgid "Range complete: found %d valid channels."
+msgstr "网段完成：发现 %d 个有效频道。"
+
+msgid "Scan complete: checked %d addresses, found %d channels."
+msgstr "扫描完成：共检测 %d 个地址，发现 %d 个频道。"
+
+msgid "M3U playlist: %s"
+msgstr "M3U 播放列表：%s"
+
+msgid "TXT playlist: %s"
+msgstr "TXT 播放列表：%s"
+
+msgid "The scan task is already running."
+msgstr "扫描任务已在运行中。"
+
+msgid "Scan exception: %s"
+msgstr "扫描异常：%s"
+
+msgid "Scan failed: %s"
+msgstr "扫描失败：%s"
+
+msgid "The scanner is unavailable."
+msgstr "扫描程序不可用。"

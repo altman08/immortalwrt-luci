@@ -13,6 +13,7 @@ const callStatus = rpc.declare({
 const callStart = rpc.declare({
 	object: 'luci.iptv-scan',
 	method: 'start',
+	params: [ 'language' ],
 	expect: {}
 });
 
@@ -37,9 +38,14 @@ return view.extend({
 			disabled: status.running,
 			click: ui.createHandlerFn(this, function() {
 				start.disabled = true;
-				return callStart().then(function(result) {
-					if (result.error)
-						ui.addNotification(null, E('p', {}, result.error), 'error');
+				return callStart(document.documentElement.lang || 'en').then(function(result) {
+					if (result.error) {
+						const errors = {
+							already_running: _('The scan task is already running.'),
+							scanner_unavailable: _('The scanner is unavailable.')
+						};
+						ui.addNotification(null, E('p', {}, errors[result.error] || result.error), 'error');
+					}
 					else
 						ui.addNotification(null, E('p', {}, _('The IPTV multicast scan has started.')), 'info');
 					return self.update();

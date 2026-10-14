@@ -2,6 +2,11 @@
 
 local nixio = require('nixio')
 local uci = require('uci').cursor()
+local i18n = require('luci.i18n')
+local translate = i18n.translate
+local translatef = i18n.translatef
+
+i18n.setlanguage(arg[1] or uci:get('luci', 'main', 'lang') or 'en')
 
 local CONFIG = 'iptv-scan'
 local SECTION = 'main'
@@ -72,7 +77,7 @@ local function load_channel_map(path)
 	local channels = {}
 	local file = io.open(path, 'r')
 	if not file then
-		log('[提示] 未读取到频道映射文件：' .. path)
+		log(translatef('[Notice] Unable to read channel mapping file: %s', path))
 		return channels
 	end
 
@@ -91,12 +96,12 @@ end
 
 local function get_network(interface)
 	if not interface:match('^[%w_.%-]+$') then
-		return nil, '扫描接口名称无效。'
+		return nil, translate('Invalid scan interface name.')
 	end
 
 	local handle = io.popen('ubus call network.interface.' .. interface .. ' status 2>/dev/null')
 	if not handle then
-		return nil, '无法读取接口状态。'
+		return nil, translate('Unable to read interface status.')
 	end
 	local output = handle:read('*a')
 	handle:close()
@@ -104,7 +109,7 @@ local function get_network(interface)
 	local device = output:match('"l3_device"%s*:%s*"([^"]+)"') or interface
 	local address = output:match('"address"%s*:%s*"(%d+%.%d+%.%d+%.%d+)"')
 	if not address then
-		return nil, '接口「' .. interface .. '」未取得 IPv4 地址。请确认 IPTV 网络已经连接。'
+		return nil, translatef('Interface %s has no IPv4 address. Check that the IPTV network is connected.', interface)
 	end
 	return { device = device, address = address }
 end
@@ -120,7 +125,7 @@ local function parse_ranges(ranges)
 		if prefix and port and port > 0 and port < 65536 then
 			table.insert(result, { prefix = prefix, port = port })
 		else
-			log('[跳过] 无效网段：「' .. tostring(value) .. '」。格式应为 239.1.2.:1234')
+			log(translatef('[Skip] Invalid range: %s. Expected format: 239.1.2.:1234', tostring(value)))
 		end
 	end
 	return result
@@ -192,12 +197,12 @@ end
 local function write_playlists(channels, m3u_path, txt_path, epg_url, logo_base)
 	local m3u, m3u_error = io.open(m3u_path, 'w')
 	if not m3u then
-		return nil, '无法写入 M3U 文件：' .. tostring(m3u_error)
+		return nil, translatef('Unable to write M3U file: %s', tostring(m3u_error))
 	end
 	local txt, txt_error = io.open(txt_path, 'w')
 	if not txt then
 		m3u:close()
-		return nil, '无法写入 TXT 文件：' .. tostring(txt_error)
+		return nil, translatef('Unable to write TXT file: %s', tostring(txt_error))
 	end
 
 	m3u:write('#EXTM3U')
@@ -241,29 +246,29 @@ local function run()
 	local logo_base = uci:get(CONFIG, SECTION, 'logo_base') or ''
 
 	if timeout <= 0 or timeout > 10 then
-		return nil, '接收超时必须在 0 到 10 秒之间。'
+		return nil, translate('Receive timeout must be greater than 0 and at most 10 seconds.')
 	end
 	if scheme ~= 'rtp' and scheme ~= 'udp' then
-		return nil, '播放协议必须为 rtp 或 udp。'
+		return nil, translate('Playlist protocol must be rtp or udp.')
 	end
 	if not is_safe_path(map_file) or not is_safe_path(m3u_path) or not is_safe_path(txt_path) then
-		return nil, '频道映射及输出文件必须使用安全的绝对路径。'
+		return nil, translate('Channel mapping and output files must use safe absolute paths.')
 	end
 
 	local network, network_error = get_network(interface)
 	if not network then return nil, network_error end
 	local ranges = parse_ranges(uci:get_list(CONFIG, SECTION, 'ranges'))
-	if #ranges == 0 then return nil, '没有可用的组播网段。' end
+	if #ranges == 0 then return nil, translate('No valid multicast ranges are available.') end
 
-	log('IPTV 组播扫描开始：' .. os.date('%Y-%m-%d %H:%M:%S'))
-	log('扫描接口：' .. network.device .. '（' .. network.address .. '）')
+	log(translatef('IPTV multicast scan started: %s', os.date('%Y-%m-%d %H:%M:%S')))
+	log(translatef('Scan interface: %s (%s)', network.device, network.address))
 	local names = load_channel_map(map_file)
 	local found = {}
 	local total = 0
 
 	for _, task in ipairs(ranges) do
 		local count = 0
-		log('扫描网段：' .. task.prefix .. '1-255:' .. task.port)
+		log(translatef('Scanning range: %s1-255:%d', task.prefix, task.port))
 		for suffix = 1, 255 do
 			local address = task.prefix .. suffix
 			total = total + 1
@@ -274,32 +279,32 @@ local function run()
 				local group = classify(name) .. ' - ' .. quality(name)
 				table.insert(found, { name = name, group = group, url = scheme .. '://' .. endpoint })
 				count = count + 1
-				log('  发现：' .. name .. '（' .. endpoint .. '）')
+				log(translatef('Found: %s (%s)', name, endpoint))
 			end
 		end
-		log('网段完成：发现 ' .. count .. ' 个有效频道。')
+		log(translatef('Range complete: found %d valid channels.', count))
 	end
 
 	local saved, save_error = write_playlists(found, m3u_path, txt_path, epg_url, logo_base)
 	if not saved then return nil, save_error end
-	log('扫描完成：共检测 ' .. total .. ' 个地址，发现 ' .. #found .. ' 个频道。')
-	log('M3U 播放列表：' .. m3u_path)
-	log('TXT 播放列表：' .. txt_path)
+	log(translatef('Scan complete: checked %d addresses, found %d channels.', total, #found))
+	log(translatef('M3U playlist: %s', m3u_path))
+	log(translatef('TXT playlist: %s', txt_path))
 	return true
 end
 
 if not acquire_lock() then
-	log('扫描任务已在运行中。')
+	log(translate('The scan task is already running.'))
 	os.exit(1)
 end
 
 local ok, result, error_message = xpcall(run, debug.traceback)
 release_lock()
 if not ok then
-	log('扫描异常：' .. tostring(result))
+	log(translatef('Scan exception: %s', tostring(result)))
 	os.exit(1)
 end
 if not result then
-	log('扫描失败：' .. tostring(error_message))
+	log(translatef('Scan failed: %s', tostring(error_message)))
 	os.exit(1)
 end

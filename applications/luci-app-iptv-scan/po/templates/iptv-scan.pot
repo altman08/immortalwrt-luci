@@ -126,3 +126,72 @@ msgstr ""
 
 msgid "Grant access to IPTV multicast scanner"
 msgstr ""
+
+msgid "[Notice] Unable to read channel mapping file: %s"
+msgstr ""
+
+msgid "Invalid scan interface name."
+msgstr ""
+
+msgid "Unable to read interface status."
+msgstr ""
+
+msgid "Interface %s has no IPv4 address. Check that the IPTV network is connected."
+msgstr ""
+
+msgid "[Skip] Invalid range: %s. Expected format: 239.1.2.:1234"
+msgstr ""
+
+msgid "Unable to write M3U file: %s"
+msgstr ""
+
+msgid "Unable to write TXT file: %s"
+msgstr ""
+
+msgid "Receive timeout must be greater than 0 and at most 10 seconds."
+msgstr ""
+
+msgid "Playlist protocol must be rtp or udp."
+msgstr ""
+
+msgid "Channel mapping and output files must use safe absolute paths."
+msgstr ""
+
+msgid "No valid multicast ranges are available."
+msgstr ""
+
+msgid "IPTV multicast scan started: %s"
+msgstr ""
+
+msgid "Scan interface: %s (%s)"
+msgstr ""
+
+msgid "Scanning range: %s1-255:%d"
+msgstr ""
+
+msgid "Found: %s (%s)"
+msgstr ""
+
+msgid "Range complete: found %d valid channels."
+msgstr ""
+
+msgid "Scan complete: checked %d addresses, found %d channels."
+msgstr ""
+
+msgid "M3U playlist: %s"
+msgstr ""
+
+msgid "TXT playlist: %s"
+msgstr ""
+
+msgid "The scan task is already running."
+msgstr ""
+
+msgid "Scan exception: %s"
+msgstr ""
+
+msgid "Scan failed: %s"
+msgstr ""
+
+msgid "The scanner is unavailable."
+msgstr ""
