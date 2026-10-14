@@ -18,3 +18,141 @@ msgstr "文件浏览器"
 #: applications/luci-app-filebrowser/root/usr/share/rpcd/acl.d/luci-app-filebrowser.json:3
 msgid "Grant access to File Browser"
 msgstr "授予文件浏览器访问权限"
+
+msgid "%s directories, %s files"
+msgstr "%s 个目录，%s 个文件"
+
+msgid "%s matches"
+msgstr "%s 个匹配项"
+
+msgid "Actions"
+msgstr "操作"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Clear finished"
+msgstr "清除已结束任务"
+
+msgid "Completed"
+msgstr "已完成"
+
+msgid "Create"
+msgstr "创建"
+
+msgid "Create directory"
+msgstr "新建目录"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Delete \"%s\"?"
+msgstr "删除“%s”？"
+
+msgid "Delete directory \"%s\" and all its contents?"
+msgstr "删除目录“%s”及其全部内容？"
+
+msgid "Directory name"
+msgstr "目录名称"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Download failed: %s"
+msgstr "下载失败：%s"
+
+msgid "Failed"
+msgstr "失败"
+
+msgid "Failed to create directory"
+msgstr "创建目录失败"
+
+msgid "File already exists"
+msgstr "文件已存在"
+
+msgid "Folder path"
+msgstr "目录路径"
+
+msgid "Invalid directory name"
+msgstr "目录名称无效"
+
+msgid "Invalid filename"
+msgstr "文件名无效"
+
+msgid "Invalid upload response"
+msgstr "上传响应无效或文件大小不符"
+
+msgid "Loading directory contents..."
+msgstr "正在加载目录内容…"
+
+msgid "Modified"
+msgstr "修改时间"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "No entries in this directory"
+msgstr "此目录为空"
+
+msgid "No matching files"
+msgstr "没有匹配的文件"
+
+msgid "Overwrite"
+msgstr "覆盖"
+
+msgid "Overwrite all"
+msgstr "全部覆盖"
+
+msgid "Parent directory"
+msgstr "返回上级"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Remove from queue"
+msgstr "从队列移除"
+
+msgid "Retry"
+msgstr "重试"
+
+msgid "Search files"
+msgstr "搜索文件"
+
+msgid "Size"
+msgstr "大小"
+
+msgid "Skip"
+msgstr "跳过"
+
+msgid "Skip all"
+msgstr "全部跳过"
+
+msgid "Skipped"
+msgstr "已跳过"
+
+msgid "Stop queued uploads"
+msgstr "停止后续上传"
+
+msgid "The destination exists and is not a regular file"
+msgstr "目标已存在，且不是普通文件"
+
+msgid "Unable to list directory: %s"
+msgstr "无法读取目录：%s"
+
+msgid "Upload files"
+msgstr "上传文件"
+
+msgid "Upload progress"
+msgstr "上传进度"
+
+msgid "Upload queue"
+msgstr "上传队列"
+
+msgid "Upload request failed (HTTP %s)"
+msgstr "上传请求失败（HTTP %s）"
+
+msgid "Uploading"
+msgstr "上传中"
+
+msgid "Waiting"
+msgstr "等待中"

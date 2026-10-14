@@ -9,3 +9,141 @@ msgstr ""
 #: applications/luci-app-filebrowser/root/usr/share/rpcd/acl.d/luci-app-filebrowser.json:3
 msgid "Grant access to File Browser"
 msgstr ""
+
+msgid "%s directories, %s files"
+msgstr ""
+
+msgid "%s matches"
+msgstr ""
+
+msgid "Actions"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Clear finished"
+msgstr ""
+
+msgid "Completed"
+msgstr ""
+
+msgid "Create"
+msgstr ""
+
+msgid "Create directory"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Delete \"%s\"?"
+msgstr ""
+
+msgid "Delete directory \"%s\" and all its contents?"
+msgstr ""
+
+msgid "Directory name"
+msgstr ""
+
+msgid "Download"
+msgstr ""
+
+msgid "Download failed: %s"
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+msgid "Failed to create directory"
+msgstr ""
+
+msgid "File already exists"
+msgstr ""
+
+msgid "Folder path"
+msgstr ""
+
+msgid "Invalid directory name"
+msgstr ""
+
+msgid "Invalid filename"
+msgstr ""
+
+msgid "Invalid upload response"
+msgstr ""
+
+msgid "Loading directory contents..."
+msgstr ""
+
+msgid "Modified"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "No entries in this directory"
+msgstr ""
+
+msgid "No matching files"
+msgstr ""
+
+msgid "Overwrite"
+msgstr ""
+
+msgid "Overwrite all"
+msgstr ""
+
+msgid "Parent directory"
+msgstr ""
+
+msgid "Refresh"
+msgstr ""
+
+msgid "Remove from queue"
+msgstr ""
+
+msgid "Retry"
+msgstr ""
+
+msgid "Search files"
+msgstr ""
+
+msgid "Size"
+msgstr ""
+
+msgid "Skip"
+msgstr ""
+
+msgid "Skip all"
+msgstr ""
+
+msgid "Skipped"
+msgstr ""
+
+msgid "Stop queued uploads"
+msgstr ""
+
+msgid "The destination exists and is not a regular file"
+msgstr ""
+
+msgid "Unable to list directory: %s"
+msgstr ""
+
+msgid "Upload files"
+msgstr ""
+
+msgid "Upload progress"
+msgstr ""
+
+msgid "Upload queue"
+msgstr ""
+
+msgid "Upload request failed (HTTP %s)"
+msgstr ""
+
+msgid "Uploading"
+msgstr ""
+
+msgid "Waiting"
+msgstr ""

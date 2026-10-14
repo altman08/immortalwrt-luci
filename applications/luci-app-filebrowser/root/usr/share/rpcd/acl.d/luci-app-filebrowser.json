@@ -7,6 +7,7 @@
 				"file": [ "*" ]
 			},
 			"file": {
+				"/bin/mkdir": [ "exec" ],
 				"/*": [  "list", "read", "write" ]
 			}
 		}

@@ -1,0 +1,7 @@
+{
+  "name": "luci-filebrowser-tests",
+  "private": true,
+  "scripts": { "test": "node browser.cjs" },
+  "engines": { "node": ">=20" },
+  "devDependencies": { "playwright": "1.64.0" }
+}
