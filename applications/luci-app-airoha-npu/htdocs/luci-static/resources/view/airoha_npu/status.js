@@ -13,10 +13,10 @@ var callSetMaxFreq = rpc.declare({ object: 'luci.airoha_npu', method: 'setMaxFre
 var callSetOverclock = rpc.declare({ object: 'luci.airoha_npu', method: 'setOverclock', params: ['freq_mhz'] });
 
 /*
- * Every colour below comes from the custom properties LuCI themes export,
- * with a literal fallback for a theme that does not define one. That is what
- * makes the page follow the active theme, including its dark mode and its
- * palette variants, without this file knowing which theme is running.
+ * Use theme colour properties where available. Themes such as Argon do not
+ * export these properties, so neutral surfaces must fall back to transparent
+ * backgrounds and inherited text, not a hardcoded light palette. Translucent
+ * neutral borders and tracks remain visible on both light and dark surfaces.
  *
  * Text that sits on a filled surface takes its ink from the matching
  * --on-*-color, because a hardcoded white fails against half of the dark
@@ -26,34 +26,34 @@ var callSetOverclock = rpc.declare({ object: 'luci.airoha_npu', method: 'setOver
  * sheet cannot reach another application's page.
  */
 var viewCSS = '\
-.airoha-npu-card{background:var(--background-color-high,#fff);border:1px solid var(--border-color-medium,#d0d0d0);border-radius:8px;padding:14px;transition:border-color .3s}\
+.airoha-npu-card{background:var(--background-color-high,transparent);border:1px solid var(--border-color-medium,rgba(128,128,128,.4));border-radius:8px;padding:14px;transition:border-color .3s}\
 .airoha-npu-card-active{border-color:var(--primary-color-medium,#2196f3)}\
-.airoha-npu-title{font-weight:bold;font-size:14px;color:var(--text-color-highest,#111)}\
-.airoha-npu-muted{color:var(--text-color-medium,#666)}\
-.airoha-npu-text{color:var(--text-color-high,#222)}\
-.airoha-npu-label{font-size:11px;color:var(--text-color-medium,#666)}\
+.airoha-npu-title{font-weight:bold;font-size:14px;color:var(--text-color-highest,inherit)}\
+.airoha-npu-muted{color:var(--text-color-medium,inherit)}\
+.airoha-npu-text{color:var(--text-color-high,inherit)}\
+.airoha-npu-label{font-size:11px;color:var(--text-color-medium,inherit)}\
 .airoha-npu-ok{color:var(--success-color-medium,#4caf50)}\
 .airoha-npu-warn{color:var(--warn-color-medium,#ff9800)}\
 .airoha-npu-error{color:var(--error-color-medium,#f44336)}\
-.airoha-npu-idle{color:var(--text-color-medium,#666)}\
+.airoha-npu-idle{color:var(--text-color-medium,inherit)}\
 .airoha-npu-dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}\
 .airoha-npu-chip{padding:1px 7px;border-radius:3px;font-size:10px;font-weight:600;text-transform:uppercase}\
 .airoha-npu-chip-on{background:var(--success-color-high,#2e7d32);color:var(--on-success-color,#fff)}\
 .airoha-npu-chip-npu{background:var(--primary-color-high,#1565c0);color:var(--on-primary-color,#fff)}\
-.airoha-npu-chip-off{background:none;border:1px solid var(--border-color-medium,#d0d7de);color:var(--text-color-medium,#666)}\
-.airoha-npu-bar-track{background:var(--border-color-medium,#d0d7de);border-radius:4px;overflow:hidden}\
+.airoha-npu-chip-off{background:none;border:1px solid var(--border-color-medium,rgba(128,128,128,.4));color:var(--text-color-medium,inherit)}\
+.airoha-npu-bar-track{background:var(--border-color-medium,rgba(128,128,128,.4));border-radius:4px;overflow:hidden}\
 .airoha-npu-bar-fill{height:100%;border-radius:4px;transition:width .5s}\
 .airoha-npu-bar-ok{background:var(--success-color-high,#2e7d32)}\
 .airoha-npu-bar-warn{background:var(--warn-color-high,#e65100)}\
 .airoha-npu-bar-error{background:var(--error-color-high,#c62828)}\
-.airoha-npu-bar-idle{background:var(--border-color-high,#9aa4ad)}\
-.airoha-npu-freq-value{font-weight:bold;font-size:13px;color:var(--text-color-highest,#111);margin-bottom:4px}\
+.airoha-npu-bar-idle{background:var(--border-color-high,rgba(128,128,128,.7))}\
+.airoha-npu-freq-value{font-weight:bold;font-size:13px;color:var(--text-color-highest,inherit);margin-bottom:4px}\
 .airoha-npu-freq-row{display:flex;align-items:center;gap:10px}\
 .airoha-npu-freq-track{flex:1;width:100%;max-width:350px;height:12px}\
 .airoha-npu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:10px;align-items:start}\
 .airoha-npu-band-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}\
 .airoha-npu-pse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}\
-.airoha-npu-pse-cell{background:var(--background-color-high,#fff);border:1px solid var(--border-color-medium,#d0d0d0);border-radius:5px;padding:6px 8px;font-size:12px}\
+.airoha-npu-pse-cell{background:var(--background-color-high,transparent);border:1px solid var(--border-color-medium,rgba(128,128,128,.4));border-radius:5px;padding:6px 8px;font-size:12px}\
 .airoha-npu-pse-cell-drop{border-color:var(--error-color-medium,#f44336)}\
 .airoha-npu-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}\
 .airoha-npu-table-scroll .table{min-width:820px}\
