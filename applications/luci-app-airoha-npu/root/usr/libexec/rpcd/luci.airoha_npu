@@ -1,180 +1,25 @@
 #!/bin/sh
 
-# Airoha SoC Status RPC backend for LuCI (NPU + CPU + Overclock)
+# Airoha SoC Status RPC backend for LuCI (NPU + CPU + Offload)
 
 . /lib/functions.sh
 . /usr/share/libubox/jshn.sh
 
-#
-# CPU PLL register map.
-#
-# The kernel never programs the PLL: cpufreq goes through SMC 0x82000301 and
-# BL31 does the work. Driving the PLL from here means reproducing what BL31
-# does, so the layout below mirrors plat/ecnt/en7523/ecnt_cpufreq.c in the
-# Airoha ATF tree. AN7583 and EN7581 differ, which is why overclocking a
-# AN7583 with the EN7581 addresses silently does nothing: the write-protect
-# magic differs, so every subsequent PLL write is ignored.
-#
-# Identical on both SoCs:
-CR_CPU_CLK_GATING=0x1fa201e0	# bit0 ARMPLL, bit1 PLL1, bit2 PLL2
-CR_ACLKEN_DIV=0x1efbe640	# [4:0] = 0x12
-CR_BUS_PLL_DIV=0x1efbe7c0	# [10:9] source select
-CR_PLL_WR_PROTECT=0x1fa20268
+. /usr/share/airoha-npu/cpu.sh
+. /usr/share/airoha-npu/overclock.sh
+. /usr/share/airoha-npu/topology.sh
+. /usr/share/airoha-npu/offload.sh
+. /usr/share/airoha-npu/ppe.sh
 
-CLK_SRC_ARMPLL=1
-CLK_SRC_PLL2=3
-
-# Upper bound for the direct PLL path. This is policy, not a hardware limit:
-# PCW is an 8 bit field, so the register layout allows far more than the
-# silicon will ever lock at. Kept overridable so a characterisation sweep can
-# look for the real ceiling - rpcd never sets it, so the UI keeps the default.
-: "${AIROHA_OC_MAX_MHZ:=1600}"
-
-# Lower bound: below this the clock switch has nothing useful to select. Not
-# overridable - there is no reason to sweep downwards.
-AIROHA_OC_MIN_MHZ=500
-
-# Identify the SoC. The compatible string is authoritative and needs no
-# devmem; the chip id register is a fallback for boards with an unusual DTS.
+# Device-tree identification also works without /dev/mem.
 airoha_soc() {
-	local compat hir
-
+	local compat
 	compat=$(tr '\0' '\n' < /proc/device-tree/compatible 2>/dev/null)
 	case "$compat" in
-	*airoha,an7583*|*airoha,en7583*) echo "an7583"; return ;;
-	*airoha,an7581*|*airoha,en7581*) echo "en7581"; return ;;
+		*airoha,an7583*|*airoha,en7583*) echo an7583 ;;
+		*airoha,an7581*|*airoha,en7581*) echo en7581 ;;
+		*) echo unknown ;;
 	esac
-
-	if command -v devmem > /dev/null 2>&1; then
-		hir=$(devmem 0x1fb00064 2>/dev/null)
-		if [ -n "$hir" ]; then
-			case $(( ($hir >> 16) & 0xffff )) in
-			14) echo "en7581"; return ;;	# EN7581_HIR 0x0e
-			16) echo "an7583"; return ;;	# AN7583_HIR 0x10
-			esac
-		fi
-	fi
-
-	echo "unknown"
-}
-
-# Select the per-SoC PLL register map. Fails on an unknown SoC so callers
-# refuse to write anything rather than poke addresses at random.
-soc_pll_regs() {
-	case "$1" in
-	en7581)
-		WT_PROTECT_MAGIC=0x12
-		CR_CPUPLL_SDM_PCW=0x1fa202b4
-		# POSDIV and the CHG bit share one register.
-		CR_CPUPLL_SDM_PCW_CHG=0x1fa202b8
-		CR_CPUPLL_SDM_POSDIV=0x1fa202b8
-		POSDIV_SHIFT=4
-		;;
-	an7583)
-		WT_PROTECT_MAGIC=0x80
-		CR_CPUPLL_SDM_PCW=0x1fa202ac
-		# POSDIV lives in CR_CPUPLL_SDM_SSC_PRD, CHG in its own register.
-		CR_CPUPLL_SDM_PCW_CHG=0x1fa202b0
-		CR_CPUPLL_SDM_POSDIV=0x1fa202b8
-		POSDIV_SHIFT=18
-		;;
-	*)
-		return 1
-		;;
-	esac
-}
-
-# Current ARMPLL frequency in MHz, 0 if it cannot be determined.
-# Mirrors curr_armpll_clk_get(): posdiv 0 -> pcw*50, posdiv 1 -> pcw*25.
-read_armpll_mhz() {
-	local pcw posdiv
-
-	command -v devmem > /dev/null 2>&1 || { echo 0; return; }
-	soc_pll_regs "$1" || { echo 0; return; }
-
-	pcw=$(devmem $CR_CPUPLL_SDM_PCW 2>/dev/null)
-	posdiv=$(devmem $CR_CPUPLL_SDM_POSDIV 2>/dev/null)
-	[ -n "$pcw" ] && [ -n "$posdiv" ] || { echo 0; return; }
-
-	pcw=$(( ($pcw >> 24) & 0xff ))
-	posdiv=$(( ($posdiv >> POSDIV_SHIFT) & 0x7 ))
-
-	case "$posdiv" in
-	0) echo $((pcw * 50)) ;;
-	1) echo $((pcw * 25)) ;;
-	*) echo 0 ;;
-	esac
-}
-
-# Switch the CPU clock mux, mirroring clk_src_switch(). Fails if the mux does
-# not read back as requested - ATF checks this too, and carrying on with a
-# half-switched mux is a good way to hang the board.
-clk_src_switch() {
-	local src="$1" val
-
-	# xtal is always on and has no gate; every other source needs one.
-	if [ "$src" -ne 0 ]; then
-		val=$(devmem $CR_CPU_CLK_GATING)
-		devmem $CR_CPU_CLK_GATING 32 $(printf "0x%08X" $(( $val | (1 << (src - 1)) )))
-	fi
-
-	# L2C SRAM interface and MCU_BIU clock divider.
-	val=$(devmem $CR_ACLKEN_DIV)
-	devmem $CR_ACLKEN_DIV 32 $(printf "0x%08X" $(( ($val & 0xFFFFFFE0) | 0x12 )))
-
-	val=$(devmem $CR_BUS_PLL_DIV)
-	devmem $CR_BUS_PLL_DIV 32 $(printf "0x%08X" $(( ($val & 0xFFFFF9FF) | (src << 9) )))
-
-	val=$(devmem $CR_BUS_PLL_DIV)
-	[ $(( ($val >> 9) & 3 )) -eq "$src" ]
-}
-
-clk_src_gate_off() {
-	local src="$1" val
-
-	val=$(devmem $CR_CPU_CLK_GATING)
-	devmem $CR_CPU_CLK_GATING 32 $(printf "0x%08X" $(( $val & ~(1 << (src - 1)) )))
-}
-
-pll_write_protect() {
-	local val
-
-	val=$(devmem $CR_PLL_WR_PROTECT)
-	case "$1" in
-	off) val=$(( ($val & 0xFFFFFF00) | WT_PROTECT_MAGIC )) ;;
-	on)  val=$(( $val & 0xFFFFFF00 )) ;;
-	*)   return 1 ;;
-	esac
-	devmem $CR_PLL_WR_PROTECT 32 $(printf "0x%08X" $val)
-}
-
-# Program PCW and POSDIV, then toggle the CHG bit so the PLL latches them.
-# EN7581 keeps POSDIV and CHG in one register, so both go out in a single
-# write. AN7583 spreads PCW, POSDIV and CHG over three separate registers.
-configure_armpll() {
-	local soc="$1" pcw="$2" posdiv="$3" val
-
-	val=$(devmem $CR_CPUPLL_SDM_PCW)
-	devmem $CR_CPUPLL_SDM_PCW 32 \
-		$(printf "0x%08X" $(( ($val & 0x00FFFFFF) | (pcw << 24) )))
-
-	if [ "$soc" = "an7583" ]; then
-		val=$(devmem $CR_CPUPLL_SDM_POSDIV)
-		devmem $CR_CPUPLL_SDM_POSDIV 32 \
-			$(printf "0x%08X" $(( ($val & 0xFFE3FFFF) | (posdiv << 18) )))
-
-		val=$(($(devmem $CR_CPUPLL_SDM_PCW_CHG)))
-	else
-		val=$(($(devmem $CR_CPUPLL_SDM_PCW_CHG)))
-		val=$(( ($val & 0xFFFFFF8F) | (posdiv << 4) ))
-	fi
-
-	if [ $(( $val & 1 )) -eq 1 ]; then
-		val=$(( $val & ~1 ))
-	else
-		val=$(( $val | 1 ))
-	fi
-	devmem $CR_CPUPLL_SDM_PCW_CHG 32 $(printf "0x%08X" $val)
 }
 
 # DT properties are big-endian 32-bit cells; read bytes with BusyBox hexdump.
@@ -233,14 +78,16 @@ npu_reserved_regions() {
 }
 
 get_status() {
-	local soc=$(airoha_soc)
+	local soc
+	soc=$(airoha_soc)
 	# === NPU Status ===
 	# Prefer the firmware named by the device tree when it is available.
 	local npu_fw=""
 	local npu_dt="/proc/device-tree/soc/npu@1e900000/firmware-name"
 	if [ -f "$npu_dt" ]; then
 		# firmware-name is a string list (null-separated). First entry is the rv32 code.
-		local fw_rel=$(tr '\0' '\n' < "$npu_dt" 2>/dev/null | grep -m1 "rv32")
+		local fw_rel
+		fw_rel=$(tr '\0' '\n' < "$npu_dt" 2>/dev/null | grep -m1 "rv32")
 		[ -n "$fw_rel" ] && npu_fw="/lib/firmware/$fw_rel"
 	fi
 	# Some boards omit firmware-name; the driver selects a built-in SoC default.
@@ -262,7 +109,12 @@ get_status() {
 	local npu_driver_path="/sys/bus/platform/drivers/airoha-npu"
 
 	if [ -d "$npu_driver_path" ]; then
-		npu_device=$(ls -1 "$npu_driver_path" 2>/dev/null | grep '\.npu$' | head -1)
+		local device
+		for device in "$npu_driver_path"/*.npu; do
+			[ -e "$device" ] || continue
+			npu_device=${device##*/}
+			break
+		done
 		if [ -n "$npu_device" ]; then
 			npu_loaded="true"
 		fi
@@ -273,16 +125,22 @@ get_status() {
 		npu_clock=$(cat /sys/kernel/debug/clk/npu/clk_rate 2>/dev/null || echo 0)
 	fi
 
-	local npu_cores=$(grep -c "airoha-npu-wdt" /proc/interrupts 2>/dev/null || echo 0)
+	local npu_cores
+	npu_cores=$(grep -c "airoha-npu-wdt" /proc/interrupts 2>/dev/null)
 
-	local offload_bound=$(cat /sys/kernel/debug/ppe/bind 2>/dev/null | grep -c "^[0-9a-fA-F]")
-	local offload_total=$(cat /sys/kernel/debug/ppe/entries 2>/dev/null | grep -c "^[0-9a-fA-F]")
+	# Reuse the same parsed snapshot as the table; never read debugfs twice.
+	local counts offload_bound=0 offload_total=0
+	counts="$1"
+	[ -n "$counts" ] || counts=$(get_ppe_entries)
+	offload_bound=$(printf '%s' "$counts" | jsonfilter -e '@.bound')
+	offload_total=$(printf '%s' "$counts" | jsonfilter -e '@.total')
 
 	local regions=""
 	[ -n "$npu_device" ] && regions=$(npu_reserved_regions "$npu_device")
 
 	# === CPU Frequency Status ===
-	local cpufreq_path="/sys/devices/system/cpu/cpufreq/policy0"
+	local cpufreq_path
+	cpufreq_path=$(npu_cpu_policy)
 	local cpu_cur_freq=0
 	local cpu_hw_freq=0
 	local cpu_governor="unknown"
@@ -298,11 +156,9 @@ get_status() {
 		cpu_avail_governors=$(cat "$cpufreq_path/scaling_available_governors" 2>/dev/null || echo "")
 		cpu_min_freq=$(cat "$cpufreq_path/scaling_min_freq" 2>/dev/null || echo 0)
 		cpu_max_freq=$(cat "$cpufreq_path/scaling_max_freq" 2>/dev/null || echo 0)
-		cpu_avail_freqs=$(cpufreq_selectable)
+		cpu_avail_freqs=$(npu_cpu_frequencies "$cpufreq_path" | tr '\n' ' ')
 	fi
 
-	# Read the actual PLL frequency from hardware (detects overclock).
-	local pll_freq=$(read_armpll_mhz "$soc")
 
 	# Read the CPU thermal zone; do not mistake a missing sensor for 0 °C.
 	local cpu_temp=-1 thermal_type temp_raw
@@ -357,87 +213,21 @@ EOF
 	json_add_int cpu_max_freq "${cpu_max_freq:-0}"
 	json_add_string cpu_avail_freqs "$cpu_avail_freqs"
 	json_add_int cpu_count "${cpu_count:-0}"
-	json_add_int pll_freq_mhz "${pll_freq:-0}"
-	json_add_int cpu_temp "$cpu_temp"
-	json_add_string soc "${soc:-unknown}"
+	json_add_int pll_freq_mhz "$(read_armpll_mhz "$soc")"
 	json_add_int oc_min_mhz "$AIROHA_OC_MIN_MHZ"
 	json_add_int oc_max_mhz "$AIROHA_OC_MAX_MHZ"
+	json_add_int cpu_temp "$cpu_temp"
+	json_add_string soc "${soc:-unknown}"
 	json_dump
-}
-
-get_ppe_entries() {
-	local entries_file="/sys/kernel/debug/ppe/entries"
-
-	if [ ! -f "$entries_file" ]; then
-		echo '{"entries":[]}'
-		return
-	fi
-
-	awk '
-	BEGIN {
-		printf "{\"entries\":["
-		first = 1
-	}
-	/^[0-9a-fA-F]+ / {
-		if (first == 0) printf ","
-		first = 0
-
-		index_val = $1
-		state = $2
-
-		type = ""
-		subtype = ""
-		if ($3 == "IPv4" || $3 == "IPv6") {
-			type = $3
-			subtype = $4
-		} else if ($3 == "L2B" || $4 == "L2B") {
-			type = "L2B"
-			subtype = ""
-		} else {
-			type = $3
-			subtype = $4
-		}
-
-		orig = ""
-		match($0, /orig=[^ ]+/)
-		if (RSTART > 0) {
-			orig = substr($0, RSTART+5, RLENGTH-5)
-		}
-
-		new_flow = ""
-		match($0, /new=[^ ]+/)
-		if (RSTART > 0) {
-			new_flow = substr($0, RSTART+4, RLENGTH-4)
-		}
-
-		eth = ""
-		match($0, /eth=[^ ]+/)
-		if (RSTART > 0) {
-			eth = substr($0, RSTART+4, RLENGTH-4)
-		}
-
-		# Some PPE debugfs variants omit counters; distinguish missing from zero.
-		packets = "null"
-		if (match($0, /packets=[0-9]+/)) {
-			packets = substr($0, RSTART+8, RLENGTH-8)
-		}
-		bytes = "null"
-		if (match($0, /bytes=[0-9]+/)) {
-			bytes = substr($0, RSTART+6, RLENGTH-6)
-		}
-
-		printf "{\"index\":\"%s\",\"state\":\"%s\",\"type\":\"%s %s\",\"orig\":\"%s\",\"new_flow\":\"%s\",\"eth\":\"%s\",\"packets\":%s,\"bytes\":%s}", \
-			index_val, state, type, subtype, orig, new_flow, eth, packets, bytes
-	}
-	END {
-		printf "]}"
-	}
-	' "$entries_file" 2>/dev/null || echo '{"entries":[]}'
 }
 
 get_token_info() {
 	local token_file="" candidate
 	local sta_json="" band iface stats interfaces
+	if ! npu_has_wifi; then
+		printf '{"has_wifi":false,"station_counts":[],"tx_queues":[]}\n'
+		return
+	fi
 
 	# Interface names and phy numbers are assigned at runtime. Classify APs
 	# by their current channel frequency, not by phy number or interface name.
@@ -483,7 +273,7 @@ get_token_info() {
 		if [ -r "$candidate" ]; then token_file="$candidate"; break; fi
 	done
 	if [ -z "$token_file" ]; then
-		printf '{"token_count":0,"token_size":0,"npu_active":false,"tx_queues":[],"station_counts":[%s]}' "$sta_json"
+		printf '{"has_wifi":true,"token_count":0,"token_size":0,"npu_active":false,"tx_queues":[],"station_counts":[%s]}' "$sta_json"
 		return
 	fi
 
@@ -493,7 +283,7 @@ get_token_info() {
 		tq_n=0
 	}
 	/^  token_count:/ { tc=$2+0; ts=$4+0 }
-	/status:.*active/ { npu=1 }
+	/status:[[:space:]]*active([[:space:]]|$)/ { npu=1 }
 	/band [0-9]/ {
 		gsub(/\|/, " ")
 		for(i=1;i<=NF;i++) {
@@ -509,7 +299,7 @@ get_token_info() {
 		tq_n++
 	}
 	END {
-		printf "{\"token_count\":%d,\"token_size\":%d,\"npu_active\":%s,\"tx_queues\":[", \
+		printf "{\"has_wifi\":true,\"token_count\":%d,\"token_size\":%d,\"npu_active\":%s,\"tx_queues\":[", \
 			tc, ts, (npu?"true":"false")
 
 		for(i=0;i<tq_n;i++) {
@@ -520,242 +310,145 @@ get_token_info() {
 
 		printf "],\"station_counts\":[%s]}", stations
 	}
-	' "$token_file" 2>/dev/null || printf '{"token_count":0,"token_size":0,"npu_active":false,"tx_queues":[],"station_counts":[%s]}' "$sta_json"
+	' "$token_file" 2>/dev/null || printf '{"has_wifi":true,"token_count":0,"token_size":0,"npu_active":false,"tx_queues":[],"station_counts":[%s]}' "$sta_json"
 }
 
-set_governor() {
-	local governor
-	governor=$(echo "$1" | jsonfilter -e "@.governor" 2>/dev/null)
-
-	if [ -z "$governor" ]; then
-		echo '{"error":"missing governor parameter"}'
-		return
-	fi
-
-	# Validate governor is available
-	local avail=$(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors 2>/dev/null)
-	if ! echo "$avail" | grep -qw "$governor"; then
-		printf '{"error":"invalid governor: %s"}' "$governor"
-		return
-	fi
-
-	echo "$governor" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null
-	if [ $? -eq 0 ]; then
-		printf '{"result":"ok","governor":"%s"}' "$governor"
-	else
-		echo '{"error":"failed to set governor"}'
-	fi
+npu_devmem32() {
+	local value digits
+	value=$(devmem "$1" 2>/dev/null) || return 1
+	case "$value" in
+		0x*)
+			digits=${value#0x}
+			case "$digits" in ''|*[!0-9a-fA-F]*) return 1 ;; esac
+			;;
+		''|*[!0-9]*) return 1 ;;
+	esac
+	printf '%s\n' "$((value))"
 }
 
-# Every frequency the policy will currently accept in scaling_max_freq.
-# Boost steps live in their own file and are absent from
-# scaling_available_frequencies, so a board whose max sits on one - AN7583
-# with the 1500-1600 MHz steps, for instance - otherwise reports a current
-# value that is in no list, which leaves the picker with nothing to select
-# and makes the value impossible to set again. They only count while the
-# boost knob is on; with it off the kernel refuses them.
-cpufreq_selectable() {
-	local path=/sys/devices/system/cpu/cpufreq/policy0
-	local freqs
+get_frame_engine_data() {
+	local i reg_q reg_d qval dval iq oq pse_ports="" psb pse_used pse_free
+	local spec id base tx txd rx rxd rxcpu rxhwf rxcpud rxhwfd engines=""
+	for i in 0 1 2 3 4 5 6 7 8 9; do
+		reg_q=$(printf '0x%x' $((0x1fb50150 + i * 4)))
+		reg_d=$(printf '0x%x' $((0x1fb50120 + i * 4)))
+		qval=$(npu_devmem32 "$reg_q") || return 1
+		dval=$(npu_devmem32 "$reg_d") || return 1
+		iq=$(( (qval >> 16) & 0xffff )); oq=$((qval & 0xffff))
+		[ -z "$pse_ports" ] || pse_ports="$pse_ports,"
+		pse_ports="$pse_ports{\"port\":$i,\"iq\":$iq,\"oq\":$oq,\"drops\":$dval}"
+	done
+	psb=$(npu_devmem32 0x1fb50104) || return 1
+	pse_used=$(( (psb >> 16) & 0xffff )); pse_free=$((psb & 0x7fff))
 
-	freqs=$(cat "$path/scaling_available_frequencies" 2>/dev/null)
-	if [ "$(cat /sys/devices/system/cpu/cpufreq/boost 2>/dev/null)" = "1" ]; then
-		freqs="$freqs $(cat "$path/scaling_boost_frequencies" 2>/dev/null)"
-	fi
-
-	echo "$freqs"
-}
-
-set_max_freq() {
-	local freq
-	freq=$(echo "$1" | jsonfilter -e "@.freq" 2>/dev/null)
-
-	if [ -z "$freq" ]; then
-		echo '{"error":"missing freq parameter"}'
-		return
-	fi
-
-	# Validate freq is in available list
-	local avail=$(cpufreq_selectable)
-	if ! echo "$avail" | grep -qw "$freq"; then
-		printf '{"error":"invalid frequency: %s"}' "$freq"
-		return
-	fi
-
-	echo "$freq" > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
-	if [ $? -eq 0 ]; then
-		printf '{"result":"ok","freq":%d}' "$freq"
-	else
-		echo '{"error":"failed to set max frequency"}'
-	fi
-}
-
-set_overclock() {
-	local target_mhz soc posdiv pcw_int actual
-
-	target_mhz=$(echo "$1" | jsonfilter -e "@.freq_mhz" 2>/dev/null)
-
-	if [ -z "$target_mhz" ]; then
-		echo '{"error":"missing freq_mhz parameter"}'
-		return
-	fi
-
-	# There is no voltage control on this hardware - the AVS path in BL31 is
-	# compiled out - so everything above stock runs at stock voltage.
-	if [ "$target_mhz" -lt "$AIROHA_OC_MIN_MHZ" ] || [ "$target_mhz" -gt "$AIROHA_OC_MAX_MHZ" ]; then
-		printf '{"error":"frequency must be %d-%d MHz"}' "$AIROHA_OC_MIN_MHZ" "$AIROHA_OC_MAX_MHZ"
-		return
-	fi
-
-	if ! command -v devmem > /dev/null 2>&1; then
-		echo '{"error":"devmem not available"}'
-		return
-	fi
-
-	soc=$(airoha_soc)
-	if ! soc_pll_regs "$soc"; then
-		printf '{"error":"unsupported SoC: %s"}' "$soc"
-		return
-	fi
-
-	# Same split as cpu_freq_config_posdiv[] in ATF.
-	if [ "$target_mhz" -lt 1000 ]; then
-		posdiv=1
-		pcw_int=$((target_mhz / 25))
-	else
-		posdiv=0
-		pcw_int=$((target_mhz / 50))
-	fi
-
-	# Lock the governor to performance. Any set_performance_state - a governor
-	# change, or thermal throttling at the 95C trip - makes BL31 reprogram the
-	# PLL back to one of its own table entries and silently undo this.
-	echo performance > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null
-
-	# From here on the order follows en7523_armpll_set().
-	if ! clk_src_switch $CLK_SRC_PLL2; then
-		clk_src_gate_off $CLK_SRC_PLL2
-		echo '{"error":"failed to switch cpu clock to pll2"}'
-		return
-	fi
-
-	pll_write_protect off
-	configure_armpll "$soc" "$pcw_int" "$posdiv"
-
-	# ATF waits 0.5 us before switching back.
-	sleep 0.02 2>/dev/null || sleep 1
-
-	if ! clk_src_switch $CLK_SRC_ARMPLL; then
-		pll_write_protect on
-		echo '{"error":"failed to switch cpu clock back to armpll"}'
-		return
-	fi
-
-	clk_src_gate_off $CLK_SRC_PLL2
-	pll_write_protect on
-
-	# Verify against the registers rather than trusting the writes.
-	actual=$(read_armpll_mhz "$soc")
-
-	printf '{"result":"ok","soc":"%s","target_mhz":%d,"actual_mhz":%d,"pcw":%d,"posdiv":%d}' \
-		"$soc" "$target_mhz" "$actual" "$pcw_int" "$posdiv"
+	# Linux airoha_regs.h: GDM_BASE = 0x500/0x1500/0x1100/0x2500;
+	# TX_OK +0x104, TX_ETH_DROP +0x118, RX_OK +0x148, RX_FC_DROP +0x14c.
+	# Read each enabled parent once, including split GDM/NBQ configurations.
+	for spec in 1:0x1fb50500 2:0x1fb51500 3:0x1fb51100 4:0x1fb52500; do
+		id=${spec%%:*}; base=${spec#*:}
+		npu_dt_enabled "/proc/device-tree/soc/ethernet@1fb50000/ethernet@$id" || continue
+		tx=$(npu_devmem32 "$(printf '0x%x' $((base + 0x104)))") || return 1
+		txd=$(npu_devmem32 "$(printf '0x%x' $((base + 0x118)))") || return 1
+		rx=$(npu_devmem32 "$(printf '0x%x' $((base + 0x148)))") || return 1
+		rxd=$(npu_devmem32 "$(printf '0x%x' $((base + 0x14c)))") || return 1
+		engines="$engines$(printf '"gdm%s":{"tx":%s,"tx_drop":%s,"rx":%s,"rx_drop":%s},' "$id" "$tx" "$txd" "$rx" "$rxd")"
+	done
+	for spec in 1:0x1fb50580 2:0x1fb51580; do
+		id=${spec%%:*}; base=${spec#*:}
+		tx=$(npu_devmem32 "$base") || return 1
+		rxcpu=$(npu_devmem32 "$(printf '0x%x' $((base + 0x10)))") || return 1
+		rxhwf=$(npu_devmem32 "$(printf '0x%x' $((base + 0x14)))") || return 1
+		rxcpud=$(npu_devmem32 "$(printf '0x%x' $((base + 0x20)))") || return 1
+		rxhwfd=$(npu_devmem32 "$(printf '0x%x' $((base + 0x24)))") || return 1
+		engines="$engines$(printf '"cdm%s":{"tx":%s,"rx_cpu":%s,"rx_hwf":%s,"rx_cpu_drop":%s,"rx_hwf_drop":%s},' "$id" "$tx" "$rxcpu" "$rxhwf" "$rxcpud" "$rxhwfd")"
+	done
+	printf '{%s"pse_ports":[%s],"pse_used":%s,"pse_free":%s}' "$engines" "$pse_ports" "$pse_used" "$pse_free"
 }
 
 get_frame_engine() {
-	if ! command -v devmem > /dev/null 2>&1; then
-		echo '{"error":"devmem not available"}'
-		return
+	local data
+	if ! command -v devmem >/dev/null 2>&1; then
+		npu_error 'devmem is unavailable'; return
 	fi
+	if data=$(get_frame_engine_data); then printf '%s\n' "$data";
+	else npu_error 'Frame Engine registers are unavailable'; fi
+}
 
-	# PSE queue status (IQ=hi16, OQ=lo16) and drop counts for each port
-	local i reg_q reg_d pse_ports=""
-	for i in 0 1 2 3 4 5 6 7 8 9; do
-		reg_q=$(printf "0x%x" $((0x1fb50150 + i * 4)))
-		reg_d=$(printf "0x%x" $((0x1fb50120 + i * 4)))
-		local qval=$(($(devmem $reg_q)))
-		local dval=$(($(devmem $reg_d)))
-		local iq=$(( (qval >> 16) & 0xFFFF ))
-		local oq=$(( qval & 0xFFFF ))
-		[ -n "$pse_ports" ] && pse_ports="${pse_ports},"
-		pse_ports="${pse_ports}{\"port\":${i},\"iq\":${iq},\"oq\":${oq},\"drops\":${dval}}"
-	done
+set_governor() {
+	local governor dir
+	json_load "$1" 2>/dev/null || { npu_error 'Invalid request'; return; }
+	json_get_var governor governor
+	dir=$(npu_cpu_policy)
+	[ -n "$dir" ] || { npu_error 'CPU frequency scaling is unavailable'; return; }
+	npu_cpu_governor_allowed "$dir" "$governor" || { npu_error 'Unsupported CPU governor'; return; }
+	if ! printf '%s\n' "$governor" > "$dir/scaling_governor"; then
+		npu_error 'Failed to set CPU governor'; return
+	fi
+	json_init
+	json_add_string result ok
+	json_add_string governor "$governor"
+	json_dump
+}
 
-	# PSE shared buffer
-	local psb=$(($(devmem 0x1fb50104)))
-	local pse_used=$(( (psb >> 16) & 0xFFFF ))
-	local pse_free=$(( psb & 0x7FFF ))
+set_max_freq() {
+	local freq dir
+	json_load "$1" 2>/dev/null || { npu_error 'Invalid request'; return; }
+	json_get_var freq freq
+	dir=$(npu_cpu_policy)
+	[ -n "$dir" ] || { npu_error 'CPU frequency scaling is unavailable'; return; }
+	npu_cpu_frequency_allowed "$dir" "$freq" || {
+		npu_error 'Select a kernel-supported frequency between 500 and 1400 MHz'; return
+	}
+	npu_cpu_set_max "$dir" "$freq" || { npu_error 'Failed to set CPU maximum frequency'; return; }
+	printf '{"result":"ok","freq":%s}\n' "$freq"
+}
 
-	# GDM counters (TX_OK, TX_DROP, RX_OK, RX_FC_DROP, RX_OVER_DROP)
-	# Read as hex to handle large 32-bit counters
-	local gdm1_tx=$(($(devmem 0x1fb50604)))
-	local gdm1_txd=$(($(devmem 0x1fb50608)))
-	local gdm1_rx=$(($(devmem 0x1fb50648)))
-	local gdm1_rxd=$(($(devmem 0x1fb5064c)))
-
-	local gdm2_tx=$(($(devmem 0x1fb51604)))
-	local gdm2_txd=$(($(devmem 0x1fb51608)))
-	local gdm2_rx=$(($(devmem 0x1fb51648)))
-	local gdm2_rxd=$(($(devmem 0x1fb5164c)))
-
-	local gdm4_tx=$(($(devmem 0x1fb52604)))
-	local gdm4_txd=$(($(devmem 0x1fb52608)))
-	local gdm4_rx=$(($(devmem 0x1fb52648)))
-	local gdm4_rxd=$(($(devmem 0x1fb5264c)))
-
-	# CDM counters (TX_OK, RXCPU_OK, RXHWF_OK, RXCPU_DROP, RXHWF_DROP)
-	local cdm1_tx=$(($(devmem 0x1fb50580)))
-	local cdm1_rxcpu=$(($(devmem 0x1fb50590)))
-	local cdm1_rxhwf=$(($(devmem 0x1fb50594)))
-	local cdm1_rxcpud=$(($(devmem 0x1fb505a0)))
-	local cdm1_rxhwfd=$(($(devmem 0x1fb505a4)))
-
-	local cdm2_tx=$(($(devmem 0x1fb51580)))
-	local cdm2_rxcpu=$(($(devmem 0x1fb51590)))
-	local cdm2_rxhwf=$(($(devmem 0x1fb51594)))
-	local cdm2_rxcpud=$(($(devmem 0x1fb515a0)))
-	local cdm2_rxhwfd=$(($(devmem 0x1fb515a4)))
-
-	printf '{"pse_ports":[%s],"pse_used":%d,"pse_free":%d,' "$pse_ports" "$pse_used" "$pse_free"
-	printf '"gdm1":{"tx":%d,"tx_drop":%d,"rx":%d,"rx_drop":%d},' "$gdm1_tx" "$gdm1_txd" "$gdm1_rx" "$gdm1_rxd"
-	printf '"gdm2":{"tx":%d,"tx_drop":%d,"rx":%d,"rx_drop":%d},' "$gdm2_tx" "$gdm2_txd" "$gdm2_rx" "$gdm2_rxd"
-	printf '"gdm4":{"tx":%d,"tx_drop":%d,"rx":%d,"rx_drop":%d},' "$gdm4_tx" "$gdm4_txd" "$gdm4_rx" "$gdm4_rxd"
-	printf '"cdm1":{"tx":%d,"rx_cpu":%d,"rx_hwf":%d,"rx_cpu_drop":%d,"rx_hwf_drop":%d},' "$cdm1_tx" "$cdm1_rxcpu" "$cdm1_rxhwf" "$cdm1_rxcpud" "$cdm1_rxhwfd"
-	printf '"cdm2":{"tx":%d,"rx_cpu":%d,"rx_hwf":%d,"rx_cpu_drop":%d,"rx_hwf_drop":%d}}' "$cdm2_tx" "$cdm2_rxcpu" "$cdm2_rxhwf" "$cdm2_rxcpud" "$cdm2_rxhwfd"
+get_dashboard() {
+	local ppe status topology token frame flow vlan pppoe ap mode
+	ppe=$(get_ppe_entries)
+	status=$(get_status "$ppe")
+	topology=$(get_topology)
+	token=$(get_token_info)
+	frame=$(get_frame_engine)
+	flow=$(get_flow_offload)
+	vlan=$(get_bridge_control vlan)
+	pppoe=$(get_bridge_control pppoe)
+	ap=$(get_bridge_control ap)
+	mode=$(get_device_mode)
+	printf '{"status":%s,"ppe":%s,"topology":%s,"token":%s,"frame_engine":%s,"flow_offload":%s,"vlan_offload":%s,"pppoe_offload":%s,"apmode_offload":%s,"device_mode":%s}\n' \
+		"${status:-null}" "${ppe:-null}" "${topology:-null}" "${token:-null}" "${frame:-null}" \
+		"${flow:-null}" "${vlan:-null}" "${pppoe:-null}" "${ap:-null}" "${mode:-null}"
 }
 
 case "$1" in
 	list)
-		echo '{"getStatus":{},"getPpeEntries":{},"getTokenInfo":{},"getFrameEngine":{},"setGovernor":{"governor":"str"},"setMaxFreq":{"freq":"int"},"setOverclock":{"freq_mhz":"int"}}'
+		echo '{"getStatus":{},"getDashboard":{},"getTopology":{},"getPpeEntries":{},"getTokenInfo":{},"getFrameEngine":{},"getFlowOffload":{},"getVlanOffload":{},"getPppoeOffload":{},"getApModeOffload":{},"getDeviceMode":{},"setGovernor":{"governor":"str"},"setMaxFreq":{"freq":"int"},"setOverclock":{"freq_mhz":"int"},"setFlowOffload":{"enabled":"int"},"setVlanOffload":{"enabled":"int"},"setPppoeOffload":{"enabled":"int"},"setApModeOffload":{"enabled":"int"}}'
 		;;
 	call)
+		input=""
 		case "$2" in
-			getStatus)
-				get_status
-				;;
-			getPpeEntries)
-				get_ppe_entries
-				;;
-			getTokenInfo)
-				get_token_info
-				;;
-			setGovernor)
-				read input
-				set_governor "$input"
-				;;
-			setMaxFreq)
-				read input
-				set_max_freq "$input"
-				;;
-			setOverclock)
-				read input
-				set_overclock "$input"
-				;;
-			getFrameEngine)
-				get_frame_engine
-				;;
-			*)
-				echo '{"error":"Invalid method"}'
-				;;
+			set*) IFS= read -r input ;;
+		esac
+		case "$2" in
+			getStatus) get_status ;;
+			getDashboard) get_dashboard ;;
+			getTopology) get_topology ;;
+			getPpeEntries) get_ppe_entries ;;
+			getTokenInfo) get_token_info ;;
+			getFrameEngine) get_frame_engine ;;
+			getFlowOffload) get_flow_offload ;;
+			getVlanOffload) get_bridge_control vlan ;;
+			getPppoeOffload) get_bridge_control pppoe ;;
+			getApModeOffload) get_bridge_control ap ;;
+			getDeviceMode) get_device_mode ;;
+			setGovernor) npu_cpu_locked set_governor "$input" ;;
+			setMaxFreq) npu_cpu_locked set_max_freq "$input" ;;
+			setOverclock) npu_cpu_locked set_overclock "$input" ;;
+			setFlowOffload) set_flow_offload "$input" ;;
+			setVlanOffload) set_bridge_control vlan "$input" ;;
+			setPppoeOffload) set_bridge_control pppoe "$input" ;;
+			setApModeOffload) set_bridge_control ap "$input" ;;
+			*) npu_error 'Invalid method' ;;
 		esac
 		;;
 esac

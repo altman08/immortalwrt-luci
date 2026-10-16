@@ -1,0 +1,18 @@
+#!/bin/sh /etc/rc.common
+
+START=89
+
+boot() {
+	. /usr/share/airoha-npu/cpu.sh
+	local remaining=15 dir
+	while [ "$remaining" -gt 0 ]; do
+		dir=$(npu_cpu_policy)
+		if [ -n "$dir" ]; then
+			npu_cpu_boot_defaults "$dir" || logger -t airoha-npu 'could not apply CPU boot defaults'
+			return
+		fi
+		sleep 1
+		remaining=$((remaining - 1))
+	done
+	logger -t airoha-npu 'cpufreq did not become available within 15 seconds'
+}

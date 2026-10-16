@@ -9,6 +9,9 @@ msgstr ""
 msgid "%d MHz is above %d MHz, which is as far as this has been tested. The board may run unstable or stop responding until it is power cycled."
 msgstr "%d MHz 超过了已测试的最高频率 %d MHz。设备可能运行不稳定，或在断电重启前无法响应。"
 
+msgid "%d RISC-V cores"
+msgstr "%d 个 RISC-V 核心"
+
 msgid "%d sta"
 msgstr "%d 台终端"
 
@@ -19,13 +22,13 @@ msgid "%s (%d regions)"
 msgstr "%s（%d 个区域）"
 
 msgid "%s (PLL estimate)"
-msgstr "%s（PLL 估算值）"
+msgstr "%s（PLL 估算）"
 
 msgid "%s | %s | %d cores"
 msgstr "%s | %s | %d 个核心"
 
-msgid "8x RISC-V via PCIe RAM"
-msgstr "8 个 RISC-V 核心，通过 PCIe RAM 通信"
+msgid "AP bridge control"
+msgstr "AP 桥接控制"
 
 msgid "Active"
 msgstr "运行中"
@@ -40,7 +43,7 @@ msgid "Apply"
 msgstr "应用"
 
 msgid "Applying..."
-msgstr "应用中..."
+msgstr "正在应用…"
 
 msgid "Band %d"
 msgstr "频段 %d"
@@ -48,11 +51,11 @@ msgstr "频段 %d"
 msgid "Bound"
 msgstr "已绑定"
 
+msgid "Bridge controls configure the forwarding path; PPE bindings show whether hardware offload is active."
+msgstr "桥接开关用于配置转发路径；可通过 PPE 流表绑定情况确认硬件卸载是否生效。"
+
 msgid "Bytes"
 msgstr "字节数"
-
-msgid "CPU Temperature"
-msgstr "CPU 温度"
 
 msgid "CPU Cores"
 msgstr "CPU 核心数"
@@ -65,6 +68,9 @@ msgstr "CPU DMA 2"
 
 msgid "CPU Frequency"
 msgstr "CPU 频率"
+
+msgid "CPU Temperature"
+msgstr "CPU 温度"
 
 msgid "CPU set to %d MHz"
 msgstr "CPU 已设置为 %d MHz"
@@ -81,20 +87,26 @@ msgstr "确认超频"
 msgid "Continue"
 msgstr "继续"
 
-msgid "Could not set the governor: %s"
-msgstr "无法设置 CPU 调速策略：%s"
-
-msgid "Could not set the maximum frequency: %s"
-msgstr "无法设置最高频率：%s"
-
 msgid "Current Frequency"
 msgstr "当前频率"
 
 msgid "Direct PLL write, %d-%d MHz. Tested up to %d MHz."
 msgstr "直接写入 PLL，范围 %d–%d MHz。已测试至 %d MHz。"
 
+msgid "Disabled"
+msgstr "禁用"
+
 msgid "Drop %s"
 msgstr "丢包 %s"
+
+msgid "Enable IPv4, IPv6 and ARP bridge netfilter processing."
+msgstr "启用 IPv4、IPv6 和 ARP 的桥接 netfilter 处理。"
+
+msgid "Enable software and hardware flow offloading in the firewall."
+msgstr "启用防火墙的软件和硬件流量卸载。"
+
+msgid "Enabled"
+msgstr "启用"
 
 msgid "Error: %s"
 msgstr "错误：%s"
@@ -102,8 +114,8 @@ msgstr "错误：%s"
 msgid "Ethernet"
 msgstr "以太网"
 
-msgid "External Ethernet / SerDes"
-msgstr "外部以太网 / SerDes"
+msgid "Ethernet topology"
+msgstr "以太网端口拓扑"
 
 msgid "Failed: %s"
 msgstr "操作失败：%s"
@@ -123,14 +135,14 @@ msgstr "良好"
 msgid "Governor"
 msgstr "调频策略"
 
-msgid "Grant access to Airoha SoC status (NPU + CPU + Overclock)"
-msgstr "允许访问 Airoha SoC 状态（NPU、CPU 和超频）"
-
 msgid "HW Offload: %s%%"
 msgstr "硬件卸载：%s%%"
 
 msgid "HWF: %s"
 msgstr "硬件转发：%s"
+
+msgid "Hardware Flow Offload"
+msgstr "硬件流量卸载"
 
 msgid "Idle"
 msgstr "空闲"
@@ -138,14 +150,32 @@ msgstr "空闲"
 msgid "Index"
 msgstr "索引"
 
+msgid "Interface"
+msgstr "接口"
+
+msgid "Internal"
+msgstr "内部"
+
 msgid "Internal Switch CPU Port"
 msgstr "内部交换机 CPU 端口"
+
+msgid "Link"
+msgstr "连接状态"
+
+msgid "Link down"
+msgstr "未连接"
+
+msgid "Link up"
+msgstr "已连接"
 
 msgid "Manages:"
 msgstr "负责："
 
 msgid "Max Frequency"
 msgstr "最高频率"
+
+msgid "Mode"
+msgstr "模式"
 
 msgid "N/A"
 msgstr "不可用"
@@ -159,17 +189,29 @@ msgstr "NPU 状态"
 msgid "New Flow"
 msgstr "转换后数据流"
 
+msgid "No active wireless APs"
+msgstr "没有启用的无线接入点"
+
 msgid "No clients"
 msgstr "无客户端"
+
+msgid "No response"
+msgstr "未收到响应"
 
 msgid "Not Active"
 msgstr "未运行"
 
 msgid "Not available: unrecognised SoC"
-msgstr "不可用：无法识别 SoC"
+msgstr "不可用：未识别的 SoC"
+
+msgid "Not supported by the running kernel"
+msgstr "当前内核不支持"
 
 msgid "Off"
 msgstr "关闭"
+
+msgid "Offload controls"
+msgstr "卸载控制"
 
 msgid "Original Flow"
 msgstr "原始数据流"
@@ -183,17 +225,20 @@ msgstr "超频请求失败：%s"
 msgid "P7 WiFi DMA"
 msgstr "P7 WiFi DMA"
 
-msgid "PON / WAN Data Path"
-msgstr "PON / WAN 数据通道"
-
 msgid "PPE Engines"
 msgstr "PPE 引擎"
 
 msgid "PPE Flow Offload Entries"
 msgstr "PPE 硬件流表"
 
+msgid "PPE debugfs is unavailable"
+msgstr "PPE 调试接口不可用"
+
 msgid "PPE init, WDMA rings, flow stats"
 msgstr "PPE 初始化、WDMA 环形队列、流量统计"
+
+msgid "PPPoE passthrough"
+msgstr "PPPoE 透传"
 
 msgid "PSE Port Queue Status"
 msgstr "PSE 端口队列状态"
@@ -204,8 +249,17 @@ msgstr "PSE 共享缓冲区"
 msgid "Packets"
 msgstr "数据包数"
 
+msgid "Pass PPPoE sessions through bridge netfilter."
+msgstr "让 PPPoE 会话经过桥接 netfilter。"
+
+msgid "Pass tagged VLAN traffic through bridge netfilter."
+msgstr "让带 VLAN 标签的流量经过桥接 netfilter。"
+
 msgid "Poor"
 msgstr "较差"
+
+msgid "Port"
+msgstr "端口"
 
 msgid "RX"
 msgstr "接收"
@@ -213,8 +267,17 @@ msgstr "接收"
 msgid "RX Drop"
 msgstr "接收丢包"
 
+msgid "RX bytes"
+msgstr "接收字节"
+
 msgid "Reserved Memory"
 msgstr "保留内存"
+
+msgid "Role"
+msgstr "用途"
+
+msgid "Routed WAN is active; only disabling is available."
+msgstr "路由上联正在运行，仅允许关闭。"
 
 msgid "SoC"
 msgstr "SoC"
@@ -222,14 +285,23 @@ msgstr "SoC"
 msgid "SoC Status"
 msgstr "芯片状态"
 
+msgid "Speed"
+msgstr "速率"
+
 msgid "State"
 msgstr "状态"
+
+msgid "Switch"
+msgstr "交换机"
 
 msgid "TX"
 msgstr "发送"
 
 msgid "TX Drop"
 msgstr "发送丢包"
+
+msgid "TX bytes"
+msgstr "发送字节"
 
 msgid "TX: %s"
 msgstr "发送：%s"
@@ -240,11 +312,17 @@ msgstr "频率必须在 %d 到 %d MHz 之间"
 msgid "Total"
 msgstr "总计"
 
+msgid "Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d. Showing up to 100 entries."
+msgstr "共 %d 条，已绑定 %d 条，IPv4 %d 条，IPv6 %d 条，二层桥接 %d 条。最多显示 100 条。"
+
 msgid "Type"
 msgstr "类型"
 
 msgid "Unknown"
 msgstr "未知"
+
+msgid "VLAN passthrough"
+msgstr "VLAN 透传"
 
 msgid "devmem is not available on this build"
 msgstr "此构建版本不支持 devmem"
