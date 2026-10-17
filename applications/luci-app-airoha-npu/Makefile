@@ -3,7 +3,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_VERSION:=1.1.0
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
@@ -12,10 +12,10 @@ LUCI_MAINTAINER:=Ryan Chen <rchen14b@gmail.com>
 LUCI_TITLE:=LuCI Airoha SoC Status (NPU, CPU, Frame Engine)
 LUCI_URL:=https://github.com/rchen14b/luci-app-airoha-npu
 LUCI_DESCRIPTION:=Airoha EN7581 and AN7583 NPU, Frame Engine and PPE status, \
-	device-tree Ethernet topology, hardware-aware Wi-Fi monitoring and offload \
-	controls. Runtime CPU controls use cpufreq or direct PLL; each boot defaults to ondemand \
+	device-tree Ethernet topology and hardware-aware Wi-Fi monitoring. \
+	Runtime CPU controls use cpufreq or direct PLL; each boot defaults to ondemand \
 	with a 1200 MHz ceiling.
-LUCI_DEPENDS:=+luci-base +rpcd +jsonfilter +jshn +iw +firewall4 +kmod-br-netfilter +kmod-nft-offload \
+LUCI_DEPENDS:=+luci-base +rpcd +jsonfilter +jshn +iw \
 	@TARGET_airoha +@KERNEL_DEVMEM +@BUSYBOX_DEFAULT_DEVMEM +@BUSYBOX_CONFIG_DEVMEM \
 	+@BUSYBOX_DEFAULT_TIMEOUT +@BUSYBOX_CONFIG_TIMEOUT
 
@@ -26,6 +26,7 @@ endef
 
 define Package/luci-app-airoha-npu/postinst
 [ -n "$${IPKG_INSTROOT}" ] || { \
+	rm -f /etc/sysctl.d/90-airoha-npu-vlan.conf /etc/sysctl.d/90-airoha-npu-pppoe.conf /etc/sysctl.d/90-airoha-npu-ap.conf
 	/etc/init.d/airoha-npu enable
 	/etc/init.d/rpcd restart
 	rm -f /tmp/luci-indexcache.*

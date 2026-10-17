@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Airoha SoC Status RPC backend for LuCI (NPU + CPU + Offload)
+# Airoha SoC Status RPC backend for LuCI (NPU + CPU + PPE monitoring)
 
 . /lib/functions.sh
 . /usr/share/libubox/jshn.sh
@@ -8,8 +8,13 @@
 . /usr/share/airoha-npu/cpu.sh
 . /usr/share/airoha-npu/overclock.sh
 . /usr/share/airoha-npu/topology.sh
-. /usr/share/airoha-npu/offload.sh
 . /usr/share/airoha-npu/ppe.sh
+
+npu_error() {
+	json_init
+	json_add_string error "$1"
+	json_dump
+}
 
 # Device-tree identification also works without /dev/mem.
 airoha_soc() {
@@ -404,25 +409,19 @@ set_max_freq() {
 }
 
 get_dashboard() {
-	local ppe status topology token frame flow vlan pppoe ap mode
+	local ppe status topology token frame
 	ppe=$(get_ppe_entries)
 	status=$(get_status "$ppe")
 	topology=$(get_topology)
 	token=$(get_token_info)
 	frame=$(get_frame_engine)
-	flow=$(get_flow_offload)
-	vlan=$(get_bridge_control vlan)
-	pppoe=$(get_bridge_control pppoe)
-	ap=$(get_bridge_control ap)
-	mode=$(get_device_mode)
-	printf '{"status":%s,"ppe":%s,"topology":%s,"token":%s,"frame_engine":%s,"flow_offload":%s,"vlan_offload":%s,"pppoe_offload":%s,"apmode_offload":%s,"device_mode":%s}\n' \
-		"${status:-null}" "${ppe:-null}" "${topology:-null}" "${token:-null}" "${frame:-null}" \
-		"${flow:-null}" "${vlan:-null}" "${pppoe:-null}" "${ap:-null}" "${mode:-null}"
+	printf '{"status":%s,"ppe":%s,"topology":%s,"token":%s,"frame_engine":%s}\n' \
+		"${status:-null}" "${ppe:-null}" "${topology:-null}" "${token:-null}" "${frame:-null}"
 }
 
 case "$1" in
 	list)
-		echo '{"getStatus":{},"getDashboard":{},"getTopology":{},"getPpeEntries":{},"getTokenInfo":{},"getFrameEngine":{},"getFlowOffload":{},"getVlanOffload":{},"getPppoeOffload":{},"getApModeOffload":{},"getDeviceMode":{},"setGovernor":{"governor":"str"},"setMaxFreq":{"freq":"int"},"setOverclock":{"freq_mhz":"int"},"setFlowOffload":{"enabled":"int"},"setVlanOffload":{"enabled":"int"},"setPppoeOffload":{"enabled":"int"},"setApModeOffload":{"enabled":"int"}}'
+		echo '{"getStatus":{},"getDashboard":{},"getTopology":{},"getPpeEntries":{},"getTokenInfo":{},"getFrameEngine":{},"setGovernor":{"governor":"str"},"setMaxFreq":{"freq":"int"},"setOverclock":{"freq_mhz":"int"}}'
 		;;
 	call)
 		input=""
@@ -436,18 +435,9 @@ case "$1" in
 			getPpeEntries) get_ppe_entries ;;
 			getTokenInfo) get_token_info ;;
 			getFrameEngine) get_frame_engine ;;
-			getFlowOffload) get_flow_offload ;;
-			getVlanOffload) get_bridge_control vlan ;;
-			getPppoeOffload) get_bridge_control pppoe ;;
-			getApModeOffload) get_bridge_control ap ;;
-			getDeviceMode) get_device_mode ;;
 			setGovernor) npu_cpu_locked set_governor "$input" ;;
 			setMaxFreq) npu_cpu_locked set_max_freq "$input" ;;
 			setOverclock) npu_cpu_locked set_overclock "$input" ;;
-			setFlowOffload) set_flow_offload "$input" ;;
-			setVlanOffload) set_bridge_control vlan "$input" ;;
-			setPppoeOffload) set_bridge_control pppoe "$input" ;;
-			setApModeOffload) set_bridge_control ap "$input" ;;
 			*) npu_error 'Invalid method' ;;
 		esac
 		;;

@@ -32,9 +32,6 @@ msgstr ""
 msgid "%s | %s | %d cores"
 msgstr ""
 
-msgid "AP bridge control"
-msgstr ""
-
 msgid "Active"
 msgstr "Activo"
 
@@ -54,9 +51,6 @@ msgid "Band %d"
 msgstr ""
 
 msgid "Bound"
-msgstr ""
-
-msgid "Bridge controls configure the forwarding path; PPE bindings show whether hardware offload is active."
 msgstr ""
 
 msgid "Bytes"
@@ -98,19 +92,7 @@ msgstr "Frecuencia actual"
 msgid "Direct PLL write, %d-%d MHz. Tested up to %d MHz."
 msgstr ""
 
-msgid "Disabled"
-msgstr ""
-
 msgid "Drop %s"
-msgstr ""
-
-msgid "Enable IPv4, IPv6 and ARP bridge netfilter processing."
-msgstr ""
-
-msgid "Enable software and hardware flow offloading in the firewall."
-msgstr ""
-
-msgid "Enabled"
 msgstr ""
 
 msgid "Error: %s"
@@ -144,9 +126,6 @@ msgid "HW Offload: %s%%"
 msgstr ""
 
 msgid "HWF: %s"
-msgstr ""
-
-msgid "Hardware Flow Offload"
 msgstr ""
 
 msgid "Idle"
@@ -209,13 +188,7 @@ msgstr "No activo"
 msgid "Not available: unrecognised SoC"
 msgstr ""
 
-msgid "Not supported by the running kernel"
-msgstr ""
-
 msgid "Off"
-msgstr ""
-
-msgid "Offload controls"
 msgstr ""
 
 msgid "Original Flow"
@@ -242,9 +215,6 @@ msgstr ""
 msgid "PPE init, WDMA rings, flow stats"
 msgstr ""
 
-msgid "PPPoE passthrough"
-msgstr ""
-
 msgid "PSE Port Queue Status"
 msgstr ""
 
@@ -252,12 +222,6 @@ msgid "PSE Shared Buffer"
 msgstr ""
 
 msgid "Packets"
-msgstr ""
-
-msgid "Pass PPPoE sessions through bridge netfilter."
-msgstr ""
-
-msgid "Pass tagged VLAN traffic through bridge netfilter."
 msgstr ""
 
 msgid "Poor"
@@ -279,9 +243,6 @@ msgid "Reserved Memory"
 msgstr "Memoria reservada"
 
 msgid "Role"
-msgstr ""
-
-msgid "Routed WAN is active; only disabling is available."
 msgstr ""
 
 msgid "SoC"
@@ -324,9 +285,6 @@ msgid "Type"
 msgstr "Tipo"
 
 msgid "Unknown"
-msgstr ""
-
-msgid "VLAN passthrough"
 msgstr ""
 
 msgid "devmem is not available on this build"

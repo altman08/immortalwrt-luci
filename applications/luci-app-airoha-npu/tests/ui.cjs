@@ -39,9 +39,7 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
     token: {has_wifi: false, station_counts: [], tx_queues: []},
     frame_engine: {gdm3: {tx: 100, rx: 200}, cdm1: {}, cdm2: {}, pse_used: 5, pse_free: 100,
      pse_ports: [{port: 0, iq: 1, oq: 2, drops: 0}, {port: 7, iq: 0, oq: 0, drops: 0}]},
-    flow_offload: {enabled: 0}, vlan_offload: {supported: false, enabled: 0},
-    pppoe_offload: {supported: true, enabled: 0}, apmode_offload: {supported: true, enabled: 0},
-    device_mode: {bridge_offload_blocked: false}
+
    };
    window.calls = []; window.notifications = []; window.fail = false;
    const rpc = {declare: declaration => (...args) => {
@@ -77,7 +75,8 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
   assert((await page.locator('#airoha-npu-fe-container').textContent()).includes('lan5, lan6'));
   assert.equal(await page.locator('#airoha-npu-maxfreq-select option:not(:disabled)').evaluateAll(opts => opts.every(o => Number(o.value) >= 500000 && Number(o.value) <= 1400000)), true);
   assert((await page.locator('#airoha-npu-ppe-table').textContent()).includes('18446744073709551615'));
-  assert.equal(await page.locator('#airoha-npu-offload-vlan').isDisabled(), true);
+  assert.equal(await page.locator('[id^=airoha-npu-offload]').count(), 0);
+  assert.equal(await page.getByText('Offload controls', {exact: true}).count(), 0);
 
   await page.selectOption('#airoha-npu-governor-select', 'schedutil');
   await page.waitForFunction(() => !document.getElementById('airoha-npu-governor-select').disabled);
@@ -114,14 +113,6 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
   await page.waitForFunction(() => data.status.pll_freq_mhz === 1400);
   await page.evaluate(() => pollNpu());
 
-  await page.evaluate(async () => {
-   data.vlan_offload.supported = true;
-   data.device_mode.bridge_offload_blocked = true;
-   await pollNpu();
-  });
-  assert.equal(await page.locator('#airoha-npu-offload-vlan').isDisabled(), false);
-  assert.equal(await page.locator('#airoha-npu-offload-pppoe option[value="1"]').isDisabled(), true);
-  assert((await page.locator('#airoha-npu-offload-hint-vlan').textContent()).includes('Routed WAN'));
   assert.equal(await page.evaluate(() => calls.filter(c => c[0].startsWith('get')).every(c => c[0] === 'getDashboard')), true);
   assert.equal(await page.locator('#airoha-npu-freq-value').textContent(), '1400 MHz (OC)');
 
@@ -150,6 +141,6 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
   if (process.env.NPU_SCREENSHOTS) await page.screenshot({path: path.join(process.env.NPU_SCREENSHOTS, 'mobile.png'), fullPage: true});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
-  console.log('PASS: wired/Wi-Fi, topology, bounded cpufreq/PLL controls, PLL readback display, RPC failures, router guards, aggregate polling and mobile layout');
+  console.log('PASS: wired/Wi-Fi, topology, bounded cpufreq/PLL controls, PLL readback display, RPC failures, removed offload controls, aggregate polling and mobile layout');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

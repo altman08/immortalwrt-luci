@@ -27,9 +27,6 @@ msgstr "%s（PLL 估算）"
 msgid "%s | %s | %d cores"
 msgstr "%s | %s | %d 个核心"
 
-msgid "AP bridge control"
-msgstr "AP 桥接控制"
-
 msgid "Active"
 msgstr "运行中"
 
@@ -50,9 +47,6 @@ msgstr "频段 %d"
 
 msgid "Bound"
 msgstr "已绑定"
-
-msgid "Bridge controls configure the forwarding path; PPE bindings show whether hardware offload is active."
-msgstr "桥接开关用于配置转发路径；可通过 PPE 流表绑定情况确认硬件卸载是否生效。"
 
 msgid "Bytes"
 msgstr "字节数"
@@ -93,20 +87,8 @@ msgstr "当前频率"
 msgid "Direct PLL write, %d-%d MHz. Tested up to %d MHz."
 msgstr "直接写入 PLL，范围 %d–%d MHz。已测试至 %d MHz。"
 
-msgid "Disabled"
-msgstr "禁用"
-
 msgid "Drop %s"
 msgstr "丢包 %s"
-
-msgid "Enable IPv4, IPv6 and ARP bridge netfilter processing."
-msgstr "启用 IPv4、IPv6 和 ARP 的桥接 netfilter 处理。"
-
-msgid "Enable software and hardware flow offloading in the firewall."
-msgstr "启用防火墙的软件和硬件流量卸载。"
-
-msgid "Enabled"
-msgstr "启用"
 
 msgid "Error: %s"
 msgstr "错误：%s"
@@ -140,9 +122,6 @@ msgstr "硬件卸载：%s%%"
 
 msgid "HWF: %s"
 msgstr "硬件转发：%s"
-
-msgid "Hardware Flow Offload"
-msgstr "硬件流量卸载"
 
 msgid "Idle"
 msgstr "空闲"
@@ -204,14 +183,8 @@ msgstr "未运行"
 msgid "Not available: unrecognised SoC"
 msgstr "不可用：未识别的 SoC"
 
-msgid "Not supported by the running kernel"
-msgstr "当前内核不支持"
-
 msgid "Off"
 msgstr "关闭"
-
-msgid "Offload controls"
-msgstr "卸载控制"
 
 msgid "Original Flow"
 msgstr "原始数据流"
@@ -237,9 +210,6 @@ msgstr "PPE 调试接口不可用"
 msgid "PPE init, WDMA rings, flow stats"
 msgstr "PPE 初始化、WDMA 环形队列、流量统计"
 
-msgid "PPPoE passthrough"
-msgstr "PPPoE 透传"
-
 msgid "PSE Port Queue Status"
 msgstr "PSE 端口队列状态"
 
@@ -248,12 +218,6 @@ msgstr "PSE 共享缓冲区"
 
 msgid "Packets"
 msgstr "数据包数"
-
-msgid "Pass PPPoE sessions through bridge netfilter."
-msgstr "让 PPPoE 会话经过桥接 netfilter。"
-
-msgid "Pass tagged VLAN traffic through bridge netfilter."
-msgstr "让带 VLAN 标签的流量经过桥接 netfilter。"
 
 msgid "Poor"
 msgstr "较差"
@@ -275,9 +239,6 @@ msgstr "保留内存"
 
 msgid "Role"
 msgstr "用途"
-
-msgid "Routed WAN is active; only disabling is available."
-msgstr "路由上联正在运行，仅允许关闭。"
 
 msgid "SoC"
 msgstr "SoC"
@@ -320,9 +281,6 @@ msgstr "类型"
 
 msgid "Unknown"
 msgstr "未知"
-
-msgid "VLAN passthrough"
-msgstr "VLAN 透传"
 
 msgid "devmem is not available on this build"
 msgstr "此构建版本不支持 devmem"

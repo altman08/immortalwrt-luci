@@ -1,3 +1,0 @@
-/etc/sysctl.d/90-airoha-npu-vlan.conf
-/etc/sysctl.d/90-airoha-npu-pppoe.conf
-/etc/sysctl.d/90-airoha-npu-ap.conf

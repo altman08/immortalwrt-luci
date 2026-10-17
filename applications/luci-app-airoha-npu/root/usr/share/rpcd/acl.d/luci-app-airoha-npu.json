@@ -1,14 +1,14 @@
 {
 	"luci-app-airoha-npu": {
-		"description": "Grant access to Airoha NPU, topology, CPU and offload controls",
+		"description": "Grant access to Airoha NPU, PPE, topology and CPU controls",
 		"read": {
 			"ubus": {
-				"luci.airoha_npu": [ "getStatus", "getDashboard", "getTopology", "getPpeEntries", "getTokenInfo", "getFrameEngine", "getFlowOffload", "getVlanOffload", "getPppoeOffload", "getApModeOffload", "getDeviceMode" ]
+				"luci.airoha_npu": [ "getStatus", "getDashboard", "getTopology", "getPpeEntries", "getTokenInfo", "getFrameEngine" ]
 			}
 		},
 		"write": {
 			"ubus": {
-				"luci.airoha_npu": [ "setGovernor", "setMaxFreq", "setOverclock", "setFlowOffload", "setVlanOffload", "setPppoeOffload", "setApModeOffload" ]
+				"luci.airoha_npu": [ "setGovernor", "setMaxFreq", "setOverclock" ]
 			}
 		}
 	}

@@ -8,12 +8,7 @@ var callDashboard = rpc.declare({ object: 'luci.airoha_npu', method: 'getDashboa
 var callSetGovernor = rpc.declare({ object: 'luci.airoha_npu', method: 'setGovernor', params: ['governor'] });
 var callSetMaxFreq = rpc.declare({ object: 'luci.airoha_npu', method: 'setMaxFreq', params: ['freq'] });
 var callSetOverclock = rpc.declare({ object: 'luci.airoha_npu', method: 'setOverclock', params: ['freq_mhz'] });
-var offloadMethods = {
-	flow: rpc.declare({ object: 'luci.airoha_npu', method: 'setFlowOffload', params: ['enabled'] }),
-	vlan: rpc.declare({ object: 'luci.airoha_npu', method: 'setVlanOffload', params: ['enabled'] }),
-	pppoe: rpc.declare({ object: 'luci.airoha_npu', method: 'setPppoeOffload', params: ['enabled'] }),
-	apmode: rpc.declare({ object: 'luci.airoha_npu', method: 'setApModeOffload', params: ['enabled'] })
-};
+
 
 /*
  * Use theme colour properties where available. Themes such as Argon do not
@@ -517,63 +512,6 @@ function ppeSummary(ppe) {
 		ppe.total || 0, ppe.bound || 0, ppe.ipv4 || 0, ppe.ipv6 || 0, ppe.l2b || 0);
 }
 
-function renderOffloadControls(data) {
-	var blocked = !!(data.device_mode || {}).bridge_offload_blocked;
-	var definitions = [
-		['flow', _('Hardware Flow Offload'), _('Enable software and hardware flow offloading in the firewall.')],
-		['vlan', _('VLAN passthrough'), _('Pass tagged VLAN traffic through bridge netfilter.')],
-		['pppoe', _('PPPoE passthrough'), _('Pass PPPoE sessions through bridge netfilter.')],
-		['apmode', _('AP bridge control'), _('Enable IPv4, IPv6 and ARP bridge netfilter processing.')]
-	];
-	return E('table', { 'class': 'table' }, definitions.map(function(def) {
-		var key = def[0], state = data[key + '_offload'] || {}, bridge = key !== 'flow';
-		var value = state.enabled ? '1' : '0';
-		var unavailable = state.supported === false;
-		var select = E('select', {
-			'id': 'airoha-npu-offload-' + key, 'class': 'cbi-input-select',
-			'disabled': unavailable ? '' : null,
-			'change': function(ev) {
-				var el = ev.target, previous = el.dataset.applied;
-				el.disabled = true;
-				el.dataset.busy = '1';
-				offloadMethods[key](Number(el.value)).then(function(result) {
-					if (!result || result.error) throw new Error(result && result.error || _('No response'));
-					el.dataset.applied = el.value;
-				}).catch(function(err) {
-					el.value = previous;
-					ui.addNotification(null, E('p', {}, _('Error: %s').format(err.message)), 'error');
-				}).then(function() { el.disabled = false; delete el.dataset.busy; });
-			}
-		}, [
-			E('option', { 'value': '0', 'selected': value === '0' ? '' : null }, _('Disabled')),
-			E('option', { 'value': '1', 'selected': value === '1' ? '' : null, 'disabled': bridge && blocked ? '' : null }, _('Enabled'))
-		]);
-		select.dataset.applied = value;
-		select.dataset.description = def[2];
-		return E('tr', { 'class': 'tr' }, [
-			E('td', { 'class': 'td', 'width': '33%' }, E('strong', {}, def[1])),
-			E('td', { 'class': 'td' }, [select, E('div', { 'id': 'airoha-npu-offload-hint-' + key, 'class': 'airoha-npu-muted', 'style': 'margin-top:4px' },
-				unavailable ? _('Not supported by the running kernel') : bridge && blocked ? _('Routed WAN is active; only disabling is available.') : def[2])])
-		]);
-	}));
-}
-
-function updateOffloadControls(data) {
-	var blocked = !!(data.device_mode || {}).bridge_offload_blocked;
-	['flow', 'vlan', 'pppoe', 'apmode'].forEach(function(key) {
-		var select = document.getElementById('airoha-npu-offload-' + key);
-		var state = data[key + '_offload'] || {};
-		if (!select || select.matches(':focus') || select.dataset.busy) return;
-		select.disabled = state.supported === false;
-		select.options[1].disabled = key !== 'flow' && blocked;
-		select.value = state.enabled ? '1' : '0';
-		select.dataset.applied = select.value;
-		var hint = document.getElementById('airoha-npu-offload-hint-' + key);
-		if (hint) hint.textContent = state.supported === false ? _('Not supported by the running kernel')
-			: key !== 'flow' && blocked ? _('Routed WAN is active; only disabling is available.') : select.dataset.description;
-	});
-}
-
 return view.extend({
 	load: function() {
 		return collect();
@@ -627,11 +565,6 @@ return view.extend({
 				E('h3', {}, _('Ethernet topology')),
 				E('div', {'id': 'airoha-npu-ports'}, renderPorts(topo))
 			]),
-			E('div', {'class': 'cbi-section'}, [
-				E('h3', {}, _('Offload controls')),
-				E('p', {'class': 'airoha-npu-muted'}, _('Bridge controls configure the forwarding path; PPE bindings show whether hardware offload is active.')),
-				E('div', {'id': 'airoha-npu-offload'}, renderOffloadControls(data))
-			]),
 
 			// PPE Flow Table
 			E('div',{'class':'cbi-section'},[
@@ -663,7 +596,6 @@ return view.extend({
 				var fc=document.getElementById('airoha-npu-fe-container'); if(fc){fc.innerHTML='';fc.appendChild(renderFeDiagram(fe, ti, st, topo));}
 
 				var portsEl=document.getElementById('airoha-npu-ports'); if(portsEl) portsEl.replaceChildren(renderPorts(topo));
-				updateOffloadControls(d);
 				var summary=document.getElementById('airoha-npu-ppe-summary'); if(summary) summary.textContent=ppeSummary(ppe);
 
 				var tb=document.getElementById('airoha-npu-ppe-table');

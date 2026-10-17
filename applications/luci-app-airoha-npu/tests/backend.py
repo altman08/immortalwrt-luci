@@ -2,7 +2,7 @@
 """Integration checks in a disposable, unmounted x86-64 OpenWrt rootfs.
 
 Run as root: python3 tests/backend.py /path/to/extracted/openwrt-rootfs
-Real BusyBox ash, jshn, jsonfilter and UCI are used; hardware and ubus are fixtures.
+Real BusyBox ash, jshn, jsonfilter and UCI are used; hardware is simulated.
 """
 import json
 import os
@@ -96,7 +96,6 @@ class Backend(unittest.TestCase):
             path.unlink()
         self.write('/dev/null', '')
         self.write('/usr/bin/logger', '#!/bin/sh\nprintf "%s\\n" "$*" >> /tmp/logger\n', True)
-        self.write('/bin/ubus', '#!/bin/sh\ncat "/tmp/ubus/$2.json" 2>/dev/null\n', True)
         self.write('/etc/init.d/firewall', '#!/bin/sh\necho "$*" >> /tmp/firewall-calls\n', True)
         self.write('/etc/config/firewall', "config defaults\n option flow_offloading '0'\n option flow_offloading_hw '0'\nconfig zone\n option name 'wan'\n list network 'internet'\n")
         self.write('/etc/config/network', "config interface 'wan'\n option device 'pon0'\n")
@@ -218,35 +217,26 @@ cat "$file"
         self.assertEqual(self.read('/sys/devices/system/cpu/cpufreq/policy0/scaling_governor'), 'performance')
         self.assertIn('unavailable', self.read('/tmp/logger'))
 
-    def test_disjoint_bridge_switches_and_router_guard(self):
-        for method in ['setVlanOffload', 'setPppoeOffload', 'setApModeOffload']:
-            self.assertEqual(self.rpc(method, {'enabled': 1})['result'], 'ok')
-        self.assertEqual(self.rpc('setApModeOffload', {'enabled': 0})['result'], 'ok')
-        self.assertEqual(self.rpc('getPppoeOffload')['enabled'], 1)
-        self.assertEqual(self.rpc('getVlanOffload')['enabled'], 1)
-        self.assertEqual(self.rpc('getApModeOffload')['enabled'], 0)
-        self.write('/tmp/ubus/network.interface.internet.json', '{"up":true,"proto":"pppoe","l3_device":"pppoe-internet"}')
-        self.assertTrue(self.rpc('getDeviceMode')['bridge_offload_blocked'])
-        self.assertIn('error', self.rpc('setApModeOffload', {'enabled': 1}))
-        self.assertEqual(self.rpc('setPppoeOffload', {'enabled': 0})['result'], 'ok')
-        self.assertIn('error', self.rpc('setVlanOffload', {'enabled': 2}))
-
-    def test_missing_bridge_control_has_no_config_side_effects(self):
-        (self.root / 'proc/sys/net/bridge/bridge-nf-pass-vlan-input-dev').unlink()
-        self.assertFalse(self.rpc('getVlanOffload')['supported'])
-        self.assertIn('error', self.rpc('setVlanOffload', {'enabled': 1}))
-        self.assertEqual(self.read('/proc/sys/net/bridge/bridge-nf-filter-vlan-tagged'), '0')
-        self.assertFalse((self.root / 'etc/sysctl.d/90-airoha-npu-vlan.conf').exists())
-
-    def test_flow_offload_updates_both_flags_and_reloads_firewall(self):
-        self.run_shell("uci set 'firewall.@defaults[0].unrelated=pending'")
-        self.assertIn('error', self.rpc('setFlowOffload', {'enabled': 1}))
-        self.assertNotIn('unrelated', self.read('/etc/config/firewall'))
-        self.run_shell('uci revert firewall')
-        self.assertEqual(self.rpc('setFlowOffload', {'enabled': 1})['result'], 'ok')
-        self.assertEqual(self.rpc('getFlowOffload')['enabled'], 1)
-        self.assertNotIn('unrelated', self.read('/etc/config/firewall'))
-        self.assertEqual(self.read('/tmp/firewall-calls'), 'reload')
+    def test_removed_controls_cannot_modify_network_settings(self):
+        methods = json.loads(self.run_shell('/usr/libexec/rpcd/luci.airoha_npu list'))
+        acl = json.loads(self.read('/usr/share/rpcd/acl.d/luci-app-airoha-npu.json'))['luci-app-airoha-npu']
+        allowed = acl['read']['ubus']['luci.airoha_npu'] + acl['write']['ubus']['luci.airoha_npu']
+        before_firewall = self.read('/etc/config/firewall')
+        bridge = self.root / 'proc/sys/net/bridge'
+        before_bridge = {f.name: f.read_bytes() for f in bridge.iterdir()}
+        for method in ['getFlowOffload', 'getVlanOffload', 'getPppoeOffload', 'getApModeOffload',
+                       'getDeviceMode', 'setFlowOffload', 'setVlanOffload', 'setPppoeOffload', 'setApModeOffload']:
+            self.assertNotIn(method, methods)
+            self.assertNotIn(method, allowed)
+            self.assertEqual(self.rpc(method, {'enabled': 1}), {'error': 'Invalid method'})
+        dashboard = self.rpc('getDashboard')
+        self.assertEqual(set(dashboard), {'status', 'ppe', 'topology', 'token', 'frame_engine'})
+        self.assertEqual(self.read('/etc/config/firewall'), before_firewall)
+        self.assertEqual({f.name: f.read_bytes() for f in bridge.iterdir()}, before_bridge)
+        self.assertFalse((self.root / 'tmp/firewall-calls').exists())
+        self.assertFalse(list((self.root / 'etc/sysctl.d').glob('90-airoha-npu-*')))
+        self.assertFalse((self.root / 'usr/share/airoha-npu/offload.sh').exists())
+        self.assertFalse((self.root / 'lib/upgrade/keep.d/luci-app-airoha-npu').exists())
 
     def test_ppe_summary_precision_cache_and_recovery(self):
         data = self.rpc('getPpeEntries')
