@@ -4,7 +4,7 @@
 'require rpc';
 'require ui';
 
-var callDashboard = rpc.declare({ object: 'luci.airoha_npu', method: 'getDashboard' });
+var callDashboard = rpc.declare({ object: 'luci.airoha_npu', method: 'getDashboard', params: ['ppe'] });
 var callSetGovernor = rpc.declare({ object: 'luci.airoha_npu', method: 'setGovernor', params: ['governor'] });
 var callSetMaxFreq = rpc.declare({ object: 'luci.airoha_npu', method: 'setMaxFreq', params: ['freq'] });
 var callSetOverclock = rpc.declare({ object: 'luci.airoha_npu', method: 'setOverclock', params: ['freq_mhz'] });
@@ -59,9 +59,13 @@ var viewCSS = '\
 .airoha-npu-pse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}\
 .airoha-npu-pse-cell{background:var(--background-color-high,transparent);border:1px solid var(--border-color-medium,rgba(128,128,128,.4));border-radius:5px;padding:6px 8px;font-size:12px}\
 .airoha-npu-pse-cell-drop{border-color:var(--error-color-medium,#f44336)}\
+.airoha-npu-history{width:100%;height:auto;display:block;overflow:visible}\
+.airoha-npu-history text{fill:currentColor;font-size:11px}\
+.airoha-npu-history-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px}\
+.airoha-npu-pager{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0}\
 .airoha-npu-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}\
 .airoha-npu-table-scroll .table{min-width:820px}\
-@media(max-width:600px){.airoha-npu-grid{grid-template-columns:1fr}.airoha-npu-band-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.airoha-npu-pse-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}.airoha-npu-freq-row{gap:5px}.airoha-npu-freq-track{min-width:0}.airoha-npu-oc-row{display:flex;flex-direction:column;gap:8px}}\
+@media(max-width:600px){.airoha-npu-grid{grid-template-columns:1fr}.airoha-npu-history text{font-size:20px}.airoha-npu-band-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.airoha-npu-pse-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}.airoha-npu-freq-row{gap:5px}.airoha-npu-freq-track{min-width:0}.airoha-npu-oc-row{display:flex;flex-direction:column;gap:8px}}\
 ';
 
 /* ── Helpers ── */
@@ -352,6 +356,109 @@ function updateFreqBar(hw, min, max, pll) {
 	if (ml) ml.textContent = fmtFreq(s.max);
 }
 
+/* Keep ten minutes of history in this browser tab. Reboots invalidate the
+ * baseline; missing/reset counters create a gap instead of a false 0% sample. */
+var HISTORY_KEY = 'airoha_npu.history.v1';
+var HISTORY_MS = 10 * 60 * 1000;
+var HISTORY_LIMIT = 120;
+var coreColors = ['#2196f3', '#e67e22', '#9b59b6', '#16a085', '#e84393', '#b7950b', '#607d8b', '#795548'];
+
+function cpuHistory(st) {
+	var history = { boot: st.boot_id || '', points: [], baseline: null };
+	try {
+		var saved = JSON.parse(sessionStorage.getItem(HISTORY_KEY));
+		if (history.boot && saved && saved.boot === history.boot && Array.isArray(saved.points)) {
+			history.points = saved.points.filter(function(p) {
+				return p && Number.isFinite(p.t) && p.t <= Date.now() && p.t > Date.now() - HISTORY_MS &&
+					(p.freq === null || Number.isFinite(p.freq)) && Array.isArray(p.loads) &&
+					p.loads.every(function(c) { return c && Number.isInteger(c.core) && (c.value === null || (Number.isFinite(c.value) && c.value >= 0 && c.value <= 100)); });
+			}).slice(-HISTORY_LIMIT);
+			if (saved.baseline && Number.isFinite(saved.baseline.t) && Array.isArray(saved.baseline.ticks))
+				history.baseline = saved.baseline;
+		}
+	} catch (e) { /* Storage can be disabled or full. */ }
+	return history;
+}
+
+function sampleHistory(history, st) {
+	var now = Date.now(), boot = st.boot_id || '';
+	if (history.boot !== boot) { history.points = []; history.baseline = null; history.boot = boot; }
+	var ticks = Array.isArray(st.cpu_ticks) ? st.cpu_ticks : [];
+	var previous = history.baseline;
+	var loads = ticks.filter(function(c) { return Number.isInteger(c.core); }).map(function(c) {
+		var old = previous && previous.t < now && now - previous.t < 15000 &&
+			previous.ticks.find(function(p) { return p.core === c.core; });
+		var dt = old ? Number(c.total) - Number(old.total) : 0;
+		var di = old ? Number(c.idle) - Number(old.idle) : 0;
+		return { core: c.core, value: dt > 0 && di >= 0 && di <= dt ? Math.max(0, Math.min(100, (dt - di) / dt * 100)) : null };
+	});
+	var freq = freqBarState(st.cpu_hw_freq || st.cpu_cur_freq, st.cpu_min_freq, st.cpu_max_freq, st.pll_freq_mhz).freq;
+	history.points = history.points.filter(function(p) { return p.t > now - HISTORY_MS && p.t < now; });
+	history.points.push({ t: now, freq: freq > 0 && Number.isFinite(freq) ? freq / 1000 : null, loads: loads });
+	history.points = history.points.slice(-HISTORY_LIMIT);
+	history.baseline = { t: now, ticks: ticks };
+	try { sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch (e) {}
+}
+
+function svgNode(tag, attrs, text) {
+	var node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+	Object.keys(attrs || {}).forEach(function(key) { node.setAttribute(key, attrs[key]); });
+	if (text != null) node.textContent = text;
+	return node;
+}
+
+function historyChart(history, usage) {
+	var points = history.points, now = points.length ? points[points.length - 1].t : Date.now();
+	var cores = [];
+	points.forEach(function(p) { p.loads.forEach(function(c) { if (cores.indexOf(c.core) < 0) cores.push(c.core); }); });
+	cores.sort(function(a, b) { return a - b; });
+	var series = usage ? cores.map(function(core) {
+		return { name: 'CPU ' + core, color: coreColors[core % coreColors.length], values: points.map(function(p) {
+			var c = p.loads.find(function(c) { return c.core === core; }); return c ? c.value : null;
+		}) };
+	}) : [{ name: _('Frequency History'), color: 'var(--primary-color-medium,#2196f3)', values: points.map(function(p) { return p.freq; }) }];
+	var ceiling = usage ? 100 : Math.max(1000, Math.ceil(Math.max.apply(null, points.map(function(p) { return p.freq || 0; })) / 200) * 200);
+	var svg = svgNode('svg', { 'class': 'airoha-npu-history', viewBox: '0 0 600 180', role: 'img', 'aria-label': usage ? _('CPU Usage History') : _('Frequency History') });
+	svg.appendChild(svgNode('title', {}, _('Last 10 minutes; hover over a point for details')));
+	function x(t) { return 52 + (t - (now - HISTORY_MS)) / HISTORY_MS * 536; }
+	function y(value) { return 148 - value / ceiling * 128; }
+	[0, ceiling / 2, ceiling].forEach(function(value) {
+		svg.appendChild(svgNode('line', { x1: 52, y1: y(value), x2: 588, y2: y(value), stroke: 'currentColor', opacity: '.15' }));
+		svg.appendChild(svgNode('text', { x: 46, y: y(value) + 4, 'text-anchor': 'end' }, value + (usage ? '%' : '')));
+	});
+	svg.appendChild(svgNode('text', { x: 52, y: 172 }, _('-10 min')));
+	svg.appendChild(svgNode('text', { x: 588, y: 172, 'text-anchor': 'end' }, _('Now')));
+	series.forEach(function(line) {
+		var segment = [], lastTime = 0;
+		function flush() {
+			if (segment.length) svg.appendChild(svgNode('polyline', { points: segment.join(' '), fill: 'none', stroke: line.color, 'stroke-width': 2 }));
+			segment = [];
+		}
+		line.values.forEach(function(value, i) {
+			if (value == null || points[i].t - lastTime > 15000) flush();
+			lastTime = points[i].t;
+			if (value == null) return;
+			segment.push(x(points[i].t) + ',' + y(value));
+			var dot = svgNode('circle', { cx: x(points[i].t), cy: y(value), r: 2.5, fill: line.color });
+			dot.appendChild(svgNode('title', {}, new Date(points[i].t).toLocaleTimeString() + ' · ' + line.name + ': ' + value.toFixed(1) + (usage ? '%' : ' MHz')));
+			svg.appendChild(dot);
+		});
+		flush();
+	});
+	return E('div', { 'class': 'airoha-npu-card' }, [
+		E('div', { 'class': 'airoha-npu-title' }, usage ? _('CPU Usage History') : _('Frequency History')),
+		svg,
+		E('div', { 'class': 'airoha-npu-history-legend' }, series.map(function(line) {
+			var last = line.values[line.values.length - 1];
+			return E('span', { style: 'color:' + line.color }, line.name + ': ' + (last == null ? _('N/A') : last.toFixed(1) + (usage ? '%' : ' MHz')));
+		}))
+	]);
+}
+
+function renderHistory(history) {
+	return E('div', { 'class': 'airoha-npu-grid' }, [historyChart(history, false), historyChart(history, true)]);
+}
+
 function runtimeSelect(id, values, active, setter, format) {
 	if (!values.length) return E('span', {}, _('N/A'));
 	var current = String(active || '');
@@ -473,7 +580,7 @@ function formatPpeCount(count) {
 }
 
 function renderPpeRows(entries) {
-	return entries.slice(0,100).map(function(e) {
+	return entries.map(function(e) {
 		var eth = e.eth||''; if(eth==='00:00:00:00:00:00->00:00:00:00:00:00') eth='-';
 		return E('tr',{'class':'tr'},[
 			E('td',{'class':'td'},e.index), E('td',{'class':'td'},E('span',{'class':e.state==='BND'?'label-success':''},e.state)),
@@ -484,8 +591,8 @@ function renderPpeRows(entries) {
 }
 
 /* ── Main View ── */
-function collect() {
-	return callDashboard();
+function collect(wantPpe) {
+	return callDashboard(wantPpe === false ? 0 : 1);
 }
 
 function renderPorts(topo) {
@@ -506,10 +613,68 @@ function renderPorts(topo) {
 	].concat(rows)));
 }
 
+function renderPon(pon) {
+	if (!pon || !pon.present) return E('span');
+	var rows = [
+		[_('Interface'), pon.netdev || _('N/A')],
+		[_('PON mode'), pon.mode_name && pon.mode_name !== 'unknown' ? pon.mode_name.toUpperCase() : _('N/A')],
+		[_('Optical signal'), pon.los == null ? _('N/A') : Number(pon.los) === 1 ? _('LOS / No light') : _('Light detected')],
+		[_('ONU state'), pon.onu_state || _('N/A')],
+		[_('Nominal downstream / upstream'), Number(pon.down_mbps) > 0 && Number(pon.up_mbps) > 0 ? pon.down_mbps + ' / ' + pon.up_mbps + ' Mbps' : _('N/A')]
+	];
+	return E('div', { 'class': 'cbi-section' }, [
+		E('h3', {}, _('PON Status')),
+		E('table', { 'class': 'table' }, rows.map(function(row) {
+			return E('tr', { 'class': 'tr' }, [E('td', { 'class': 'td', width: '33%' }, row[0]), E('td', { 'class': 'td' }, row[1])]);
+		}))
+	]);
+}
+
 function ppeSummary(ppe) {
 	if (!ppe.available) return _('PPE debugfs is unavailable');
-	return _('Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d. Showing up to 100 entries.').format(
+	return _('Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d.').format(
 		ppe.total || 0, ppe.bound || 0, ppe.ipv4 || 0, ppe.ipv6 || 0, ppe.l2b || 0);
+}
+
+function ppeSampleAge(ppe) {
+	var age = Math.max(0, Math.floor(Date.now() / 1000 - ppe.sampled_at));
+	return Number.isFinite(age) ? _('Snapshot: %d seconds ago; refreshes about every 20 seconds.').format(age) : _('PPE refreshes about every 20 seconds.');
+}
+
+var PPE_PAGE_SIZE = 50;
+function renderPpePanel(state) {
+	var ppe = state.ppe, entries = Array.isArray(ppe.entries) ? ppe.entries : [];
+	var pages = Math.max(1, Math.ceil(entries.length / PPE_PAGE_SIZE));
+	state.page = Math.max(0, Math.min(state.page, pages - 1));
+	function move(step) {
+		state.page += step;
+		var panel = document.getElementById('airoha-npu-ppe-panel');
+		if (panel) panel.replaceChildren(renderPpePanel(state));
+	}
+	var partitions = [];
+	if (ppe.available && (ppe.ppe_count === 1 || ppe.ppe_count === 2)) {
+		['ppe1'].concat(ppe.ppe_count === 2 ? ['ppe2'] : []).concat(['dram']).forEach(function(key) {
+			partitions.push(E('div', { 'class': 'airoha-npu-pse-cell' }, [
+				E('strong', {}, key.toUpperCase()),
+				E('div', {}, _('Total: %d / Bound: %d').format(ppe[key] || 0, ppe[key + '_bound'] || 0))
+			]));
+		});
+	}
+	var first = state.page * PPE_PAGE_SIZE;
+	return E('div', {}, [
+		E('p', { id: 'airoha-npu-ppe-summary', 'class': 'airoha-npu-muted' }, ppeSummary(ppe)),
+		E('div', { id: 'airoha-npu-ppe-partitions', 'class': 'airoha-npu-pse-grid' }, partitions),
+		E('p', { id: 'airoha-npu-ppe-age', 'class': 'airoha-npu-muted' }, ppeSampleAge(ppe)),
+		ppe.truncated ? E('p', { 'class': 'airoha-npu-warn' }, _('Only the first %d entries are available for paging; statistics cover the full snapshot.').format(entries.length)) : null,
+		E('div', { 'class': 'airoha-npu-pager' }, [
+			E('button', { id: 'airoha-npu-ppe-prev', type: 'button', 'class': 'cbi-button', disabled: state.page === 0 ? '' : null, click: function() { move(-1); } }, _('Previous')),
+			E('span', { id: 'airoha-npu-ppe-page', 'aria-live': 'polite' }, _('Page %d of %d; entries %d–%d of %d').format(state.page + 1, pages, entries.length ? first + 1 : 0, Math.min(first + PPE_PAGE_SIZE, entries.length), entries.length)),
+			E('button', { id: 'airoha-npu-ppe-next', type: 'button', 'class': 'cbi-button', disabled: state.page + 1 >= pages ? '' : null, click: function() { move(1); } }, _('Next'))
+		]),
+		E('div', { 'class': 'airoha-npu-table-scroll' }, E('table', { 'class': 'table', id: 'airoha-npu-ppe-table' }, [
+			E('tr', { 'class': 'tr cbi-section-table-titles' }, [_('Index'), _('State'), _('Type'), _('Original Flow'), _('New Flow'), _('Ethernet'), _('Packets'), _('Bytes')].map(function(t) { return E('th', { 'class': 'th' }, t); }))
+		].concat(renderPpeRows(entries.slice(first, first + PPE_PAGE_SIZE)))))
+	].filter(Boolean));
 }
 
 return view.extend({
@@ -519,7 +684,11 @@ return view.extend({
 
 	render: function(data) {
 		var st = data.status||{}, ppe = data.ppe||{}, ti = data.token||{}, fe = data.frame_engine||{}, topo = data.topology||{};
-		var entries = Array.isArray(ppe.entries) ? ppe.entries : [];
+		st.offload_total = ppe.total || 0;
+		st.offload_bound = ppe.bound || 0;
+		var ppeState = { ppe: ppe, page: 0 };
+		var history = cpuHistory(st), pollCount = 0;
+		sampleHistory(history, st);
 		var memR = Array.isArray(st.memory_regions) ? st.memory_regions : [];
 
 		var view = E('div',{'class':'cbi-map'},[
@@ -541,6 +710,9 @@ return view.extend({
 					E('tr',{'class':'tr'},[ E('td',{'class':'td'},E('strong',{},_('SoC'))), E('td',{'class':'td'},socLabel(st.soc)) ])
 				])
 			]),
+
+			E('div', { id: 'airoha-npu-history' }, renderHistory(history)),
+			E('div', { id: 'airoha-npu-pon' }, renderPon(topo.pon)),
 
 			// NPU & Frame Engine (unified)
 			E('div',{'class':'cbi-section'},[
@@ -569,21 +741,22 @@ return view.extend({
 			// PPE Flow Table
 			E('div',{'class':'cbi-section'},[
 				E('h3',{},_('PPE Flow Offload Entries')),
-				E('p',{'id':'airoha-npu-ppe-summary','class':'airoha-npu-muted'},ppeSummary(ppe)),
-				E('div',{'class':'airoha-npu-table-scroll'}, E('table',{'class':'table','id':'airoha-npu-ppe-table'},[
-					E('tr',{'class':'tr cbi-section-table-titles'},[
-						E('th',{'class':'th'},_('Index')), E('th',{'class':'th'},_('State')), E('th',{'class':'th'},_('Type')),
-						E('th',{'class':'th'},_('Original Flow')), E('th',{'class':'th'},_('New Flow')), E('th',{'class':'th'},_('Ethernet')),
-						E('th',{'class':'th'},_('Packets')), E('th',{'class':'th'},_('Bytes'))
-					])
-				].concat(renderPpeRows(entries))))
+				E('div', { id: 'airoha-npu-ppe-panel' }, renderPpePanel(ppeState))
 			])
 		]);
 
 		poll.add(L.bind(function() {
-			return collect().then(L.bind(function(d) {
+			return collect(++pollCount % 4 === 0).then(L.bind(function(d) {
 				var st=d.status||{}, ppe=d.ppe||{}, ti=d.token||{}, fe=d.frame_engine||{}, topo=d.topology||{};
-				var entries = Array.isArray(ppe.entries)?ppe.entries:[];
+				if (!ppe.deferred) ppeState.ppe = ppe;
+				// Keep the table and FE totals on the same snapshot during light polls.
+				st.offload_total = ppeState.ppe.total || 0;
+				st.offload_bound = ppeState.ppe.bound || 0;
+				sampleHistory(history, st);
+				var charts = document.getElementById('airoha-npu-history');
+				if (charts) charts.replaceChildren(renderHistory(history));
+				var ponEl = document.getElementById('airoha-npu-pon');
+				if (ponEl) ponEl.replaceChildren(renderPon(topo.pon));
 
 				updateFreqBar((st.cpu_hw_freq||st.cpu_cur_freq),st.cpu_min_freq,st.cpu_max_freq,st.pll_freq_mhz);
 				var tempEl=document.getElementById('airoha-npu-cpu-temp'); if(tempEl) tempEl.textContent=st.cpu_temp >= 0 ? st.cpu_temp + ' °C' : _('N/A');
@@ -596,10 +769,12 @@ return view.extend({
 				var fc=document.getElementById('airoha-npu-fe-container'); if(fc){fc.innerHTML='';fc.appendChild(renderFeDiagram(fe, ti, st, topo));}
 
 				var portsEl=document.getElementById('airoha-npu-ports'); if(portsEl) portsEl.replaceChildren(renderPorts(topo));
-				var summary=document.getElementById('airoha-npu-ppe-summary'); if(summary) summary.textContent=ppeSummary(ppe);
-
-				var tb=document.getElementById('airoha-npu-ppe-table');
-				if(tb){while(tb.rows.length>1)tb.deleteRow(1);renderPpeRows(entries).forEach(function(r){tb.appendChild(r);});}
+				if (!ppe.deferred) {
+					var panel = document.getElementById('airoha-npu-ppe-panel');
+					if (panel) panel.replaceChildren(renderPpePanel(ppeState));
+				}
+				var age = document.getElementById('airoha-npu-ppe-age');
+				if (age) age.textContent = ppeSampleAge(ppeState.ppe);
 			},this));
 		},this), 5);
 

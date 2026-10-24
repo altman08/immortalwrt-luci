@@ -109,6 +109,8 @@ class Backend(unittest.TestCase):
             'scaling_boost_frequencies': '1300000 1500000'
         }.items():
             self.write('/sys/devices/system/cpu/cpufreq/policy0/' + name, value + '\n')
+        self.write('/proc/stat', 'cpu 100 0 50 300 50 0 0 0 20 0\ncpu0 100 0 50 300 50 0 0 0 20 0\ncpu2 20 0 10 60 10 0 0 0 0 0\n')
+        self.write('/proc/sys/kernel/random/boot_id', 'boot-fixture\n')
         self.write('/proc/interrupts', '8: 0 airoha-npu-wdt\n')
         for name in ['bridge-nf-filter-vlan-tagged', 'bridge-nf-pass-vlan-input-dev',
                      'bridge-nf-filter-pppoe-tagged', 'bridge-nf-call-iptables',
@@ -274,6 +276,100 @@ cat "$file"
         (self.root / 'sys/class/ieee80211/phy7').mkdir(parents=True)
         self.assertTrue(self.rpc('getTopology')['has_wifi'])
         self.assertTrue(self.rpc('getTokenInfo')['has_wifi'])
+
+    def test_pon_native_vendor_fallback_and_unknown_values(self):
+        self.assertFalse(self.rpc('getTopology')['pon']['present'])
+        self.write('/etc/config/pon', "config line 'line0'\n option device 'optic0'\n")
+        line = '/sys/kernel/debug/airoha-xpon-optic0/line'
+        registration = '/sys/kernel/debug/airoha-xpon-optic0/registration'
+        self.write(line, 'configured_mode: gpon\nactive_mode: xgspon\noptical_signal: 1\n')
+        self.write(registration, 'onu_state: O5\n')
+        pon = self.rpc('getDashboard')['topology']['pon']
+        self.assertEqual((pon['netdev'], pon['mode_name'], pon['los'], pon['onu_state']), ('optic0', 'xgspon', 0, 'O5'))
+        self.assertEqual((pon['down_mbps'], pon['up_mbps']), (10000, 10000))
+        self.write(line, 'active_mode: epon-1g\noptical_signal: 0\n')
+        pon = self.rpc('getTopology')['pon']
+        self.assertEqual((pon['mode_name'], pon['los']), ('epon-1g', 1))
+        # Unknown/absent data must not claim light, registration or line rates.
+        self.write(line, 'active_mode: none\noptical_signal: -1\n')
+        self.write(registration, 'onu_state: invalid\n')
+        pon = self.rpc('getTopology')['pon']
+        self.assertIsNone(pon['los'])
+        self.assertIsNone(pon['down_mbps'])
+        self.assertEqual(pon['onu_state'], '')
+        self.write('/sys/module/xpon_10g/parameters/mode', '6\n')
+        self.write('/proc/tc3162/los_status', '0\n')
+        self.write('/proc/xgpon/state', 'O3\n')
+        pon = self.rpc('getTopology')['pon']
+        self.assertEqual((pon['mode_name'], pon['los'], pon['onu_state']), ('xgpon', 1, 'O3'))
+        self.assertEqual((pon['down_mbps'], pon['up_mbps']), (10000, 2500))
+
+    def test_cpu_ticks_preserve_core_ids_and_exclude_guest(self):
+        status = self.rpc('getStatus')
+        self.assertEqual(status['boot_id'], 'boot-fixture')
+        self.assertEqual(status['cpu_ticks'], [
+            {'core': 0, 'total': '500', 'idle': '350'},
+            {'core': 2, 'total': '100', 'idle': '70'}])
+        (self.root / 'proc/stat').unlink()
+        self.assertEqual(self.rpc('getStatus')['cpu_ticks'], [])
+
+    def test_ppe_partitions_follow_soc_boundaries_and_cover_truncated_rows(self):
+        records = ''.join('%05x BND IPv4 5T\n' % i for i in range(1100))
+        records += '01fff UNB IPv6 3T\n02000 BND L2B\n03fff FIN IPv4 5T\n04000 BND IPv4 5T\n'
+        self.write('/sys/kernel/debug/ppe/entries', records)
+        self.node('/proc/device-tree', compatible='airoha,an7581')
+        ppe = self.rpc('getPpeEntries')
+        self.assertEqual((ppe['ppe1'], ppe['ppe2'], ppe['dram']), (1101, 2, 1))
+        self.assertEqual((ppe['ppe1_bound'], ppe['ppe2_bound'], ppe['dram_bound']), (1100, 1, 1))
+        self.assertEqual(ppe['total'], 1104)
+        self.assertEqual(len(ppe['entries']), 1024)
+        self.assertTrue(ppe['truncated'])
+        self.assertGreater(ppe['sampled_at'], 0)
+        # A different SoC invalidates the cache, even within its two-second TTL.
+        self.node('/proc/device-tree', compatible='airoha,an7583')
+        ppe = self.rpc('getPpeEntries')
+        self.assertEqual((ppe['ppe_count'], ppe['ppe1'], ppe['dram']), (1, 1101, 3))
+        self.assertNotIn('ppe2', ppe)
+        self.node('/proc/device-tree', compatible='vendor,unknown')
+        self.assertNotIn('ppe_count', self.rpc('getPpeEntries'))
+        self.node('/proc/device-tree', compatible='airoha,an7581')
+        self.write('/sys/kernel/debug/ppe/entries', '42\n')
+        legacy = self.rpc('getPpeEntries')
+        self.assertEqual((legacy['total'], legacy['bound']), (42, 42))
+        self.assertNotIn('ppe_count', legacy)
+
+    def test_light_dashboard_never_reads_debugfs_and_keeps_snapshot_counts(self):
+        # A cold light call must not fall back to a live table read.
+        cold = self.rpc('getDashboard', {'ppe': 0})
+        self.assertTrue(cold['ppe']['deferred'])
+        self.assertFalse(cold['ppe']['available'])
+        full = self.rpc('getDashboard', {'ppe': 1})
+        cache = '/tmp/luci-airoha-npu.ppe.cache'
+        header, payload = self.read(cache).split('\n', 1)
+        fields = header.split()
+        fields[1] = '1'
+        self.write(cache, ' '.join(fields) + '\n' + payload + '\n')
+        entries = self.root / 'sys/kernel/debug/ppe/entries'
+        entries.unlink()
+        os.mkfifo(str(entries))  # Opening this for a live read would stall.
+        self.write('/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq', '600000\n')
+        light = self.rpc('getDashboard', {'ppe': 0})
+        self.assertTrue(light['ppe']['deferred'])
+        self.assertNotIn('entries', light['ppe'])
+        self.assertEqual(light['status']['offload_total'], full['ppe']['total'])
+        self.assertEqual(light['status']['offload_bound'], full['ppe']['bound'])
+        self.assertEqual(light['status']['cpu_cur_freq'], 600000)
+        self.assertTrue((self.root / cache.lstrip('/')).exists())
+        entries.unlink()
+        self.write('/sys/kernel/debug/ppe/entries', '04000 BND IPv6 3T\n')
+        # Missing argument retains the full API used by older callers.
+        updated = self.rpc('getDashboard')
+        self.assertEqual(updated['ppe']['total'], 1)
+        self.assertEqual(updated['ppe']['entries'][0]['index'], '04000')
+        self.assertEqual(updated['status']['offload_total'], 1)
+        self.write(cache, 'broken\nnot JSON')
+        self.assertFalse(self.rpc('getDashboard', {'ppe': 0})['ppe']['available'])
+        self.assertEqual(self.rpc('getDashboard', {'ppe': 'invalid'})['ppe']['total'], 1)
 
     def test_aggregate_survives_absent_devmem_and_matches_ppe_snapshot(self):
         self.write('/usr/sbin/devmem', '#!/bin/sh\nexit 1\n', True)

@@ -278,8 +278,6 @@ msgstr "La frecuencia debe estar entre %d y %d MHz"
 msgid "Total"
 msgstr ""
 
-msgid "Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d. Showing up to 100 entries."
-msgstr ""
 
 msgid "Type"
 msgstr "Tipo"
@@ -289,3 +287,63 @@ msgstr ""
 
 msgid "devmem is not available on this build"
 msgstr ""
+
+msgid "Frequency History"
+msgstr "Historial de frecuencia"
+
+msgid "CPU Usage History"
+msgstr "Historial de uso de CPU"
+
+msgid "Last 10 minutes; hover over a point for details"
+msgstr "Últimos 10 minutos; pase el cursor sobre un punto para ver detalles"
+
+msgid "-10 min"
+msgstr "-10 min"
+
+msgid "Now"
+msgstr "Ahora"
+
+msgid "PON mode"
+msgstr "Modo PON"
+
+msgid "Optical signal"
+msgstr "Señal óptica"
+
+msgid "LOS / No light"
+msgstr "LOS / Sin luz"
+
+msgid "Light detected"
+msgstr "Luz detectada"
+
+msgid "ONU state"
+msgstr "Estado de ONU"
+
+msgid "Nominal downstream / upstream"
+msgstr "Velocidad nominal de bajada / subida"
+
+msgid "PON Status"
+msgstr "Estado PON"
+
+msgid "Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d."
+msgstr "Total: %d, vinculadas: %d, IPv4: %d, IPv6: %d, puente L2: %d."
+
+msgid "Snapshot: %d seconds ago; refreshes about every 20 seconds."
+msgstr "Instantánea de hace %d segundos; se actualiza aproximadamente cada 20 segundos."
+
+msgid "PPE refreshes about every 20 seconds."
+msgstr "PPE se actualiza aproximadamente cada 20 segundos."
+
+msgid "Total: %d / Bound: %d"
+msgstr "Total: %d / Vinculadas: %d"
+
+msgid "Only the first %d entries are available for paging; statistics cover the full snapshot."
+msgstr "Solo las primeras %d entradas están disponibles para paginar; las estadísticas cubren toda la instantánea."
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Page %d of %d; entries %d–%d of %d"
+msgstr "Página %d de %d; entradas %d–%d de %d"
+
+msgid "Next"
+msgstr "Siguiente"

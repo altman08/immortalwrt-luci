@@ -273,8 +273,6 @@ msgstr "频率必须在 %d 到 %d MHz 之间"
 msgid "Total"
 msgstr "总计"
 
-msgid "Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d. Showing up to 100 entries."
-msgstr "共 %d 条，已绑定 %d 条，IPv4 %d 条，IPv6 %d 条，二层桥接 %d 条。最多显示 100 条。"
 
 msgid "Type"
 msgstr "类型"
@@ -284,3 +282,63 @@ msgstr "未知"
 
 msgid "devmem is not available on this build"
 msgstr "此构建版本不支持 devmem"
+
+msgid "Frequency History"
+msgstr "频率历史"
+
+msgid "CPU Usage History"
+msgstr "CPU 使用率历史"
+
+msgid "Last 10 minutes; hover over a point for details"
+msgstr "最近 10 分钟；悬停在采样点上查看详情"
+
+msgid "-10 min"
+msgstr "-10 分钟"
+
+msgid "Now"
+msgstr "现在"
+
+msgid "PON mode"
+msgstr "PON 模式"
+
+msgid "Optical signal"
+msgstr "光信号"
+
+msgid "LOS / No light"
+msgstr "LOS / 无光"
+
+msgid "Light detected"
+msgstr "检测到光信号"
+
+msgid "ONU state"
+msgstr "ONU 状态"
+
+msgid "Nominal downstream / upstream"
+msgstr "标称下行 / 上行速率"
+
+msgid "PON Status"
+msgstr "PON 状态"
+
+msgid "Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d."
+msgstr "共 %d 条，已绑定 %d 条，IPv4 %d 条，IPv6 %d 条，二层桥接 %d 条。"
+
+msgid "Snapshot: %d seconds ago; refreshes about every 20 seconds."
+msgstr "快照采集于 %d 秒前；约每 20 秒刷新。"
+
+msgid "PPE refreshes about every 20 seconds."
+msgstr "PPE 约每 20 秒刷新。"
+
+msgid "Total: %d / Bound: %d"
+msgstr "总计：%d / 已绑定：%d"
+
+msgid "Only the first %d entries are available for paging; statistics cover the full snapshot."
+msgstr "仅可翻页查看前 %d 条记录；统计涵盖完整快照。"
+
+msgid "Previous"
+msgstr "上一页"
+
+msgid "Page %d of %d; entries %d–%d of %d"
+msgstr "第 %d / %d 页；第 %d–%d 条，共 %d 条"
+
+msgid "Next"
+msgstr "下一页"

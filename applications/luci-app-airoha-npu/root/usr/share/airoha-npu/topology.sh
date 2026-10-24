@@ -114,5 +114,7 @@ get_topology() {
 		npu_topology_port "$node" switch 1
 	done
 	json_close_array
-	json_dump
+	local topology_json
+	topology_json=$(json_dump)
+	printf '%s,"pon":%s}\n' "${topology_json%\}}" "$(npu_pon_status)"
 }

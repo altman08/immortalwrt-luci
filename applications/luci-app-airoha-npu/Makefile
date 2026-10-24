@@ -2,8 +2,8 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_VERSION:=1.1.0
-PKG_RELEASE:=3
+PKG_VERSION:=1.2.0
+PKG_RELEASE:=1
 
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
@@ -12,7 +12,7 @@ LUCI_MAINTAINER:=Ryan Chen <rchen14b@gmail.com>
 LUCI_TITLE:=LuCI Airoha SoC Status (NPU, CPU, Frame Engine)
 LUCI_URL:=https://github.com/rchen14b/luci-app-airoha-npu
 LUCI_DESCRIPTION:=Airoha EN7581 and AN7583 NPU, Frame Engine and PPE status, \
-	device-tree Ethernet topology and hardware-aware Wi-Fi monitoring. \
+	device-tree Ethernet topology, PON status, CPU history and hardware-aware Wi-Fi monitoring. \
 	Runtime CPU controls use cpufreq or direct PLL; each boot defaults to ondemand \
 	with a 1200 MHz ceiling.
 LUCI_DEPENDS:=+luci-base +rpcd +jsonfilter +jshn +iw \

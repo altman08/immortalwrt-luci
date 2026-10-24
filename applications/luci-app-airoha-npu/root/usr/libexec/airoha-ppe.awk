@@ -21,16 +21,35 @@ function counter(name,    value) {
 	# Preserve 64-bit values without floating-point rounding.
 	return value ~ /^[0-9]+$/ ? quote(value) : "null"
 }
+# Debugfs indices cover each 8192-entry SRAM bank, then shared DRAM.
+# AN7581 has two banks, AN7583 one. Unknown SoCs omit this breakdown.
+function hexval(s,    i, d, n) {
+	n = 0
+	for (i = 1; i <= length(s); i++) {
+		d = index("0123456789abcdef", tolower(substr(s, i, 1))) - 1
+		if (d < 0) return -1
+		n = n * 16 + d
+	}
+	return n
+}
+function bucket(idx, state,    name) {
+	if (!ppe_count || idx < 0) return
+	name = idx < 8192 ? "ppe1" : (ppe_count == 2 && idx < 16384 ? "ppe2" : "dram")
+	counts[name]++
+	if (state == "BND") bounds[name]++
+}
 BEGIN { total = shown = n4 = n6 = l2b = bnd = unb = fin = 0 }
 # Some kernel versions expose only the bound count in ppe/bind.
 NF == 1 && $1 ~ /^[0-9]+$/ && (state_filter == "" || state_filter == "BND") {
 	total += $1
 	bnd += $1
+	legacy_count = 1
 	next
 }
 $1 ~ /^[0-9a-fA-F]+$/ && $2 ~ /^(BND|UNB|FIN|INV)$/ {
 	if (state_filter != "" && $2 != state_filter) next
 	total++
+	bucket(hexval($1), $2)
 	if ($2 == "BND") bnd++
 	if ($2 == "UNB") unb++
 	if ($2 == "FIN") fin++
@@ -48,7 +67,12 @@ $1 ~ /^[0-9a-fA-F]+$/ && $2 ~ /^(BND|UNB|FIN|INV)$/ {
 		quote(field("vlan")), counter("packets"), counter("bytes"))
 }
 END {
-	printf "{\"available\":true,\"total\":%d,\"ipv4\":%d,\"ipv6\":%d,\"l2b\":%d,\"bound\":%d,\"unbound\":%d,\"finished\":%d,\"truncated\":%s,\"entries\":[",
+	printf "{\"schema\":2,\"soc\":%s,\"sampled_at\":%.0f,", quote(soc), sampled_at
+	if (ppe_count && !legacy_count) {
+		printf "\"ppe_count\":%d,\"ppe1\":%d,\"ppe1_bound\":%d,\"dram\":%d,\"dram_bound\":%d,", ppe_count, counts["ppe1"], bounds["ppe1"], counts["dram"], bounds["dram"]
+		if (ppe_count == 2) printf "\"ppe2\":%d,\"ppe2_bound\":%d,", counts["ppe2"], bounds["ppe2"]
+	}
+	printf "\"available\":true,\"total\":%d,\"ipv4\":%d,\"ipv6\":%d,\"l2b\":%d,\"bound\":%d,\"unbound\":%d,\"finished\":%d,\"truncated\":%s,\"entries\":[",
 		total, n4, n6, l2b, bnd, unb, fin, (total > shown ? "true" : "false")
 	for (i = 1; i <= shown; i++) {
 		if (i > 1) printf ","

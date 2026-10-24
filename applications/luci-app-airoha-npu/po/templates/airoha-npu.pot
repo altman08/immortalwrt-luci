@@ -268,8 +268,6 @@ msgstr ""
 msgid "Total"
 msgstr ""
 
-msgid "Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d. Showing up to 100 entries."
-msgstr ""
 
 msgid "Type"
 msgstr ""
@@ -278,4 +276,64 @@ msgid "Unknown"
 msgstr ""
 
 msgid "devmem is not available on this build"
+msgstr ""
+
+msgid "Frequency History"
+msgstr ""
+
+msgid "CPU Usage History"
+msgstr ""
+
+msgid "Last 10 minutes; hover over a point for details"
+msgstr ""
+
+msgid "-10 min"
+msgstr ""
+
+msgid "Now"
+msgstr ""
+
+msgid "PON mode"
+msgstr ""
+
+msgid "Optical signal"
+msgstr ""
+
+msgid "LOS / No light"
+msgstr ""
+
+msgid "Light detected"
+msgstr ""
+
+msgid "ONU state"
+msgstr ""
+
+msgid "Nominal downstream / upstream"
+msgstr ""
+
+msgid "PON Status"
+msgstr ""
+
+msgid "Total: %d, bound: %d, IPv4: %d, IPv6: %d, L2 bridge: %d."
+msgstr ""
+
+msgid "Snapshot: %d seconds ago; refreshes about every 20 seconds."
+msgstr ""
+
+msgid "PPE refreshes about every 20 seconds."
+msgstr ""
+
+msgid "Total: %d / Bound: %d"
+msgstr ""
+
+msgid "Only the first %d entries are available for paging; statistics cover the full snapshot."
+msgstr ""
+
+msgid "Previous"
+msgstr ""
+
+msgid "Page %d of %d; entries %d–%d of %d"
+msgstr ""
+
+msgid "Next"
 msgstr ""
