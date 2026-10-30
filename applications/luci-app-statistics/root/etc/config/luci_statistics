@@ -213,6 +213,11 @@ config statistics 'collectd_thermal'
 	option IgnoreSelected '0'
 	option Device ''
 
+config statistics 'collectd_ubi'
+	option enable '0'
+	option IgnoreSelected '0'
+	list Device '/^ubi[0-9]+$/'
+
 config statistics 'collectd_uptime'
 	option enable '0'
 

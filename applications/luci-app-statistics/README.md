@@ -1,3 +1,31 @@
+# UBI statistics
+
+Install `collectd-mod-ubi` on a device with UBI support, then enable UBI under
+Statistics → Setup → General plugins. The AN7581 and AN7583 firmware configs
+include this package. Collection is disabled by default, like other optional
+statistics plugins.
+
+The device list accepts UBI device names such as `ubi0` and regular expressions.
+The default `/^ubi[0-9]+$/` selects UBI devices without selecting volumes such as
+`ubi0_0`. With "Monitor all except specified" enabled, the listed devices are
+excluded instead.
+
+Graphs are shown separately for each device and each available metric:
+
+* Bad physical eraseblock count (`bad_peb_count`).
+* Maximum erase counter (`max_ec`).
+* Bad blocks divided by blocks reserved for bad-block handling (`percent`).
+  This metric is provided by the collectd patch in this feed and equals
+  `bad_peb_count / reserved_for_bad * 100`. It is not a flash lifetime estimate
+  or the percentage of all blocks that are bad. If the reserve is zero, collectd
+  does not submit this metric; devices without a percentage RRD still show the
+  other graphs.
+
+The [collectd UBI plugin](https://github.com/collectd/collectd/blob/collectd-5.12.0/src/ubi.c)
+uses the device name as the type instance, so the expected RRD paths are
+`/tmp/rrd/<hostname>/ubi/bad_peb_count-ubi0.rrd`, `max_ec-ubi0.rrd`, and
+`percent-ubi0.rrd` (relative to the same directory).
+
 # Backups
 
 The backup scheme implemented in `/etc/init.d/luci_statistics` aims to

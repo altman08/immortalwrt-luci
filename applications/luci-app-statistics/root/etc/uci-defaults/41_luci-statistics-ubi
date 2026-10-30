@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Add the optional UBI section when upgrading an existing statistics config.
+uci -q get luci_statistics.collectd_ubi >/dev/null && exit 0
+
+uci -q batch <<'EOF'
+set luci_statistics.collectd_ubi=statistics
+set luci_statistics.collectd_ubi.enable='0'
+set luci_statistics.collectd_ubi.IgnoreSelected='0'
+add_list luci_statistics.collectd_ubi.Device='/^ubi[0-9]+$/'
+commit luci_statistics
+EOF
