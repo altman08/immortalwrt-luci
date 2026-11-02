@@ -283,21 +283,6 @@ msgstr "未知"
 msgid "devmem is not available on this build"
 msgstr "此构建版本不支持 devmem"
 
-msgid "Frequency History"
-msgstr "频率历史"
-
-msgid "CPU Usage History"
-msgstr "CPU 使用率历史"
-
-msgid "Last 10 minutes; hover over a point for details"
-msgstr "最近 10 分钟；悬停在采样点上查看详情"
-
-msgid "-10 min"
-msgstr "-10 分钟"
-
-msgid "Now"
-msgstr "现在"
-
 msgid "PON mode"
 msgstr "PON 模式"
 

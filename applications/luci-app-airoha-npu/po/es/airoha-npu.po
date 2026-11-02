@@ -288,21 +288,6 @@ msgstr ""
 msgid "devmem is not available on this build"
 msgstr ""
 
-msgid "Frequency History"
-msgstr "Historial de frecuencia"
-
-msgid "CPU Usage History"
-msgstr "Historial de uso de CPU"
-
-msgid "Last 10 minutes; hover over a point for details"
-msgstr "Últimos 10 minutos; pase el cursor sobre un punto para ver detalles"
-
-msgid "-10 min"
-msgstr "-10 min"
-
-msgid "Now"
-msgstr "Ahora"
-
 msgid "PON mode"
 msgstr "Modo PON"
 

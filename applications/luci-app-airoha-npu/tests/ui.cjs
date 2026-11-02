@@ -32,7 +32,6 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
    window.data = {
     status: {soc: 'an7583', npu_loaded: true, npu_device: '1e900000.npu', npu_cores: 8,
      cpu_governor: 'ondemand', cpu_hw_freq: 800000, cpu_min_freq: 500000, cpu_max_freq: 1200000,
-     boot_id: 'fixture-boot', cpu_ticks: [{core: 0, total: '1000', idle: '500'}, {core: 2, total: '1000', idle: '500'}],
      cpu_avail_governors: 'ondemand performance schedutil', cpu_avail_freqs: '400000 500000 1200000 1400000 1600000', cpu_temp: 42},
     ppe: {available: true, total: 3, bound: 2, ipv4: 1, ipv6: 1, l2b: 1,
      entries: [{index: '00001', state: 'BND', type: 'IPv4', packets: '9007199254740993', bytes: '18446744073709551615'}]},
@@ -87,18 +86,14 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
   assert.equal(await page.getByText('Offload controls', {exact: true}).count(), 0);
 
   assert.equal(await page.locator('#airoha-npu-pon').textContent(), '');
-  assert.equal(await page.locator('#airoha-npu-history svg').count(), 2);
-  assert.equal(await page.locator('#airoha-npu-history svg[aria-label="CPU Usage History"] polyline').count(), 0);
+  assert.equal(await page.locator('#airoha-npu-history').count(), 0);
   await page.evaluate(async () => {
    calls.length = 0;
    await view.load();
    testNow += 5000;
-   data.status.cpu_ticks = [{core: 0, total: '1100', idle: '550'}, {core: 2, total: '1100', idle: '500'}];
    data.topology.pon = {present: true, netdev: 'pon0', mode_name: 'xgspon', los: 0, onu_state: 'O5', down_mbps: 10000, up_mbps: 10000};
    await pollNpu();
   });
-  assert((await page.locator('#airoha-npu-history').textContent()).includes('CPU 0: 50.0%'));
-  assert((await page.locator('#airoha-npu-history').textContent()).includes('CPU 2: 100.0%'));
   assert((await page.locator('#airoha-npu-pon').textContent()).includes('XGSPON'));
   assert((await page.locator('#airoha-npu-pon').textContent()).includes('Light detected'));
   assert((await page.locator('#airoha-npu-pon').textContent()).includes('O5'));
@@ -140,26 +135,6 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
   assert.equal(await page.locator('#airoha-npu-ppe-partitions').getByText('PPE2', {exact: true}).count(), 1);
   assert((await page.locator('#airoha-npu-pon').textContent()).includes('LOS / No light'));
 
-  // A reset CPU counter creates a missing interval. A new boot clears history.
-  await page.evaluate(async () => {
-   testNow += 5000;
-   data.status.cpu_ticks = [{core: 0, total: '10', idle: '5'}];
-   await pollNpu();
-  });
-  assert((await page.locator('#airoha-npu-history').textContent()).includes('CPU 0: N/A'));
-  const storedPoints = await page.evaluate(() => JSON.parse(sessionStorage.getItem('airoha_npu.history.v1')).points.length);
-  assert(storedPoints > 1);
-  await page.evaluate(() => {
-   testNow += 5000;
-   document.getElementById('maincontent').replaceChildren(view.render(data));
-  });
-  assert((await page.evaluate(() => JSON.parse(sessionStorage.getItem('airoha_npu.history.v1')).points.length)) > storedPoints);
-  await page.evaluate(() => {
-   testNow += 5000;
-   data.status.boot_id = 'next-boot';
-   document.getElementById('maincontent').replaceChildren(view.render(data));
-  });
-  assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('airoha_npu.history.v1')).points.length), 1);
   await page.evaluate(async () => {
    data.topology.pon = {present: true};
    testNow += 5000;
@@ -223,20 +198,12 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
   assert.equal(await page.locator('#airoha-npu-fe-container').getByText('5 GHz', {exact: true}).count(), 1);
   assert.equal(await page.locator('#airoha-npu-fe-container').getByText('2.4 GHz', {exact: true}).count(), 0);
 
-  // A long pause must not join stale load samples across the gap.
-  await page.evaluate(async () => {
-   testNow += 11 * 60 * 1000;
-   await pollNpu();
-  });
-  assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('airoha_npu.history.v1')).points.length), 1);
-  assert.equal(await page.locator('#airoha-npu-history svg[aria-label="CPU Usage History"] polyline').count(), 0);
   await page.evaluate(async () => {
    data.topology.pon = {present: true, netdev: 'pon0', mode_name: 'xgspon', los: 0, onu_state: 'O5', down_mbps: 10000, up_mbps: 10000};
    data.ppe = {available: true, ppe_count: 1, ppe1: 1, ppe1_bound: 1, dram: 0, dram_bound: 0, total: 1, bound: 1, sampled_at: Math.floor(testNow / 1000),
     entries: [{index: '00001', state: 'BND', type: 'IPv4', bytes: '18446744073709551615'}]};
    for (let i = 0; i < 4; i++) {
     testNow += 5000;
-    data.status.cpu_ticks = [{core: 0, total: String(2000 + i * 100), idle: String(1000 + i * 50)}, {core: 2, total: String(2000 + i * 100), idle: String(1000 + i * 80)}];
     await pollNpu();
    }
   });
@@ -249,6 +216,6 @@ const source = fs.readFileSync(path.join(pkg, 'htdocs/luci-static/resources/view
   if (process.env.NPU_SCREENSHOTS) await page.screenshot({path: path.join(process.env.NPU_SCREENSHOTS, 'mobile.png'), fullPage: true});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
-  console.log('PASS: PON native/unknown/LOS display, CPU history/deltas/reboot/session restore, PPE partitions/paging/shrinking snapshots/precision/deferred polls, wired/Wi-Fi, topology, bounded cpufreq/PLL controls, PLL readback display, RPC failures, removed offload controls, aggregate polling and mobile layout');
+  console.log('PASS: PON native/unknown/LOS display, PPE partitions/paging/shrinking snapshots/precision/deferred polls, wired/Wi-Fi, topology, bounded cpufreq/PLL controls, PLL readback display, RPC failures, removed offload controls, aggregate polling and mobile layout');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });
